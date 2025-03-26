@@ -93,20 +93,6 @@ class Parser
             [NOP],
         ],
 
-        ReferenceDeclaration :
-        [
-            ["ref", "SingleReferenceDeclaration", "$ReferenceDeclaration"],
-        ],
-        $ReferenceDeclaration :
-        [
-            [",", "SingleReferenceDeclaration", "$ReferenceDeclaration"],
-            [";"],
-        ],
-        SingleReferenceDeclaration :
-        [
-            ["id", "=", "Expression"],
-        ],
-
         Expressions :
         [
             ["Expression", "$Expressions"],
