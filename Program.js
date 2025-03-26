@@ -1,4 +1,4 @@
-// bruh
+
 class Object
 {
     symbol_type;
@@ -20,13 +20,20 @@ class Object
         ref     :5,
     }
 
-    static nameof = new Map
+    static data_name = new Map
     ([
         [0, "null"],
         [1, "bool"],
         [2, "number"],
         [3, "string"],
         [4, "array"],
+    ])
+
+    static symbol_name = new Map
+    ([
+        [0, "var"],
+        [1, "func"],
+        [2, "value"],
     ])
 
     constructor (symbol_type, type, data)
@@ -133,7 +140,7 @@ class Program
                     const variable_name = node.children[1].children.string;
                     const position      = node.children[1].children.position;
 
-                    this.#create_variable(variable_name, -1, position);
+                    this.#create_reference(variable_name, this.#copy_value(this.#add_value(Object.typeof.null)), position);
                 }
                 else 
                 {
@@ -148,7 +155,7 @@ class Program
                 const variable_name = node.children[0].children.string;
                 const position      = node.children[0].children.position;
 
-                this.#create_variable(variable_name, this.#visitor(node.children[1]), position);
+                this.#create_reference(variable_name, this.#visitor(node.children[1]), position);
             }
             break;
             case "$SingleDeclaration" :
@@ -196,7 +203,7 @@ class Program
             {
                 const position = node.children[0].children.position;
 
-                this.#add_operation("copy", [arg, this.#visitor(node.children[1])], position);
+                this.#add_operation("=", [arg, this.#visitor(node.children[1])], position);
                         
                 return arg;
             }
@@ -217,6 +224,14 @@ class Program
                 return destination;
             }
 
+            case "$Value":
+            {
+                return this.#visitor(node.children[1], this.#visitor(node.children[0]));
+            }
+            case "$Accessing":
+            {
+                return this.#visitor(node.children[1], this.#visitor(node.children[0], arg));
+            }
             case "Value":
             {
                 if (node.children.length === 3) // "(" Expression ")"
@@ -249,23 +264,21 @@ class Program
             }
             case "Array":
             {
-                const position = node.children[0].children.position;
-
                 if (node.children.length === 2) // "[" "]"
                 {
-                    return this.#copy_array(this.#add_value(Object.typeof.array, []), position);
+                    return this.#copy_value(this.#add_value(Object.typeof.array, []));
                 }
                 // "[" "$Array" "]"
                 if (node.children[1].rule_name === "$Array")
                 {
-                    return this.#copy_array(this.#add_value(Object.typeof.array, this.#visitor(node.children[1])), position);
+                    return this.#copy_value(this.#add_value(Object.typeof.array, this.#visitor(node.children[1])));
                 }
 
-                return this.#copy_array(this.#add_value(Object.typeof.array, [this.#visitor(node.children[1])]), position);
+                return this.#copy_value(this.#add_value(Object.typeof.array, [this.#visitor(node.children[1])]));
             }
             case "$Array":
             {
-                var array = [this.#copy_value(this.#visitor(node.children[0]))];
+                var array = [this.#visitor(node.children[0])];
 
                 if (node.children.length === 2)
                 {
@@ -276,7 +289,7 @@ class Program
             }
             case "$$Array":
             {
-                arg.push(this.#copy_value(this.#visitor(node.children[1])));
+                arg.push(this.#visitor(node.children[1]));
 
                 if (node.children.length === 3)
                 {
@@ -458,40 +471,9 @@ class Program
         return destination;
     }
 
-    #copy_array (from, position)
-    {
-        const destination = this.#data.length;
-
-        this.#data.push(new Object(Object.typeof.value, Object.typeof.array, null));
-        this.#add_operation("cpar", [destination, from], position);
-
-        return destination;
-    }
-
     #add_operation (type, operands, position)
     {
         this.#operations.push(new Operation(type, operands, position));
-    }
-
-    #create_variable (name, index, position)
-    {
-        if (this.#scope_tree[this.#current_scope].symbol_table.has(name))
-        {
-            throw new Error(`multiple initializations of "${name}" at (${position.row}, ${position.column})`);
-        }
-
-        var variable_position;
-
-        if (index === -1)
-        {
-            variable_position = this.#copy_variable(this.#add_value());
-        }
-        else
-        {
-            variable_position = this.#copy_variable(index);
-        }
-
-        this.#scope_tree[this.#current_scope].symbol_table.set(name, variable_position);
     }
 
     #create_reference (name, index, position)
@@ -573,8 +555,14 @@ class Program
 
     run () 
     {
-        console.log(this.#data);
-        console.log(this.#operations);
+        for(const x in this.#data)
+        {
+            console.log(`${x}: ${Object.symbol_name.get(this.#data[x].symbol_type)} \t${Object.data_name.get(this.#data[x].type)} \t${this.#data[x].data}`);
+        }
+        for(const x of this.#operations)
+        {
+            console.log(`${x.type} ${x.operands}`);
+        }
 
         this.#return_jumps = [];
 
@@ -587,9 +575,15 @@ class Program
 
             switch (operation_type)
             {
-                case "copy":
+                case "=":
                 {
                     this.#data[this.#get_position(operands[0])].assign(this.#data, this.#get_position(operands[1]));
+                }
+                break;
+                case "copy":
+                {
+                    this.#data[this.#get_position(operands[0])].type = this.#data[this.#get_position(operands[1])].type;
+                    this.#data[this.#get_position(operands[0])].data = structuredClone(this.#data[this.#get_position(operands[1])].data);
                 }
                 break;
 
@@ -603,7 +597,7 @@ class Program
                         {
                             case Object.typeof.null:
                             {
-                                addOutput("null")
+                                addOutput("null");
                             }
                             break;
 
@@ -617,7 +611,42 @@ class Program
 
                             case Object.typeof.array:
                             {
-                                addOutput(`[...](${this.#data[position].data.length})`)
+                                addOutput("[");
+
+                                for (const index in this.#data[position].data)
+                                {
+                                    const ref = this.#get_position(this.#data[position].data[index]);
+
+                                    if (index > 0)
+                                    {
+                                        addOutput(", ");
+                                    }
+
+                                    switch (this.#data[ref].type)
+                                    {
+                                        case Object.typeof.null:
+                                        {
+                                            addOutput("null");
+                                        }
+                                        break;
+
+                                        case Object.typeof.bool:
+                                        case Object.typeof.number:
+                                        case Object.typeof.string:
+                                        {
+                                            addOutput(String(this.#data[ref].data));   
+                                        }
+                                        break;
+
+                                        case Object.typeof.array:
+                                        {
+                                            addOutput(`[...](${this.#data[ref].data.length})`);
+                                        }
+                                        break;
+                                    }
+                                }
+
+                                addOutput("]");
                             }
                             break;
                         }

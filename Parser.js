@@ -1,4 +1,4 @@
-const NOP = "NOP";
+ const NOP = "NOP";
 
 class Node
 {
@@ -218,17 +218,35 @@ class Parser
 
         MulOp :
         [
-            ["Value", "$MulOp"],
+            ["$Value", "$MulOp"],
         ],
         $MulOp :
         [
-            ["*", "Value", "$MulOp"],
-            ["/", "Value", "$MulOp"],
-            ["//", "Value", "$MulOp"],
-            ["%", "Value", "$MulOp"],
+            ["*", "$Value", "$MulOp"],
+            ["/", "$Value", "$MulOp"],
+            ["//", "$Value", "$MulOp"],
+            ["%", "$Value", "$MulOp"],
             [NOP],
         ],
 
+        $Value :
+        [
+            ["Value", "$Accessing"]
+        ],
+        $Accessing :
+        [
+            ["Accessing", "$Accessing"],
+            [NOP],
+        ],
+        Accessing :
+        [
+            ["[", "Expression", "StringAccessing", "]"]
+        ],
+        StringAccessing :
+        [
+            [":", "Expression"],
+            [NOP],
+        ],
         Value :
         [
             ["(", "Expression", ")"],
@@ -245,8 +263,8 @@ class Parser
 
         $id :
         [
-            ["Accessing"],
             ["(", "Parameters", ")"],
+            [NOP],
         ],
 
         DefaultFunctionCall :
@@ -297,17 +315,6 @@ class Parser
         $$Array :
         [
             [",", "Expression", "$$Array"],
-            [NOP],
-        ],
-
-        Accessing :
-        [
-            ["[", "Expression", "StringAccessing", "]"],
-            [NOP],
-        ],
-        StringAccessing :
-        [
-            [":", "Expression"],
             [NOP],
         ],
     }
