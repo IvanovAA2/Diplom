@@ -217,21 +217,11 @@ class Parser
 
         $Value :
         [
-            ["Value", "$Accessing"]
+            ["Value", "Slice"]
         ],
-        $Accessing :
+        Slice :
         [
-            ["Accessing", "$Accessing"],
-            [NOP],
-        ],
-        Accessing :
-        [
-            ["[", "Expression", "StringAccessing", "]"]
-        ],
-        StringAccessing :
-        [
-            [":", "Expression"],
-            [NOP],
+            ["[", "Expression", ":", "Expression", "]"]
         ],
         Value :
         [
@@ -257,6 +247,8 @@ class Parser
         [
             ["print", "(", "Parameters", ")"],
             ["input", "(", "Parameters", ")"],
+            ["get", "(", "Expression", ",", "Expression", ")"],
+            ["set", "(", "Expression", ",", "Expression", ",", "Expression", ")"],
         ],
 
         Parameters :

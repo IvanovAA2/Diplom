@@ -189,10 +189,6 @@ class Program
             {
                 return this.#visitor(node.children[1], this.#visitor(node.children[0]));
             }
-            case "$Accessing":
-            {
-                return this.#visitor(node.children[1], this.#visitor(node.children[0], arg));
-            }
             case "Value":
             {
                 if (node.children.length === 3) // "(" Expression ")"
@@ -259,25 +255,8 @@ class Program
             }
             break;
 
-            case "Accessing":
+            case "Slice":
             {
-                if (node.children.length === 3)
-                {
-                    const destination = this.#add_value();
-
-                    this.#add_operation(
-                        "arac", 
-                        [
-                            destination, 
-                            arg, 
-                            this.#visitor(node.children[1])
-                        ], 
-                        node.children[0].children.position
-                    );
-
-                    return destination;
-                }
-
                 const destination = this.#add_value();
 
                 this.#add_operation(
@@ -343,29 +322,52 @@ class Program
 
             case "DefaultFunctionCall":
             {
-                const position  = node.children.position;
-                var parameters  = [];
-
-                if (node.children.length === 4)
-                {
-                    if (node.children[2].rule_name === "Parameters")
-                    {
-                        this.#visitor(node.children[2], parameters);
-                    }
-                    else
-                    {
-                        parameters.push(this.#visitor(node.children[2]));
-                    }
-                    
-                }
-
                 switch (node.children[0].rule_name)
                 {
                     case "print":
                     {
+                        const position  = node.children.position;
+                        var parameters  = [];
+
+                        if (node.children.length === 4)
+                        {
+                            if (node.children[2].rule_name === "Parameters")
+                            {
+                                this.#visitor(node.children[2], parameters);
+                            }
+                            else
+                            {
+                                parameters.push(this.#visitor(node.children[2]));
+                            }
+                        }
+
                         this.#add_operation("print", parameters, position);
 
                         return this.#add_value();
+                    }
+
+                    case "get":
+                    {
+                        const destination   = this.#add_value();
+                        const array         = this.#visitor(node.children[2]);
+                        const index         = this.#visitor(node.children[4]);
+                        const position      = node.children[0].children.position;
+
+                        this.#add_operation("get", [destination, array, index], position);
+
+                        return destination;
+                    }
+
+                    case "set":
+                    {
+                        const array     = this.#visitor(node.children[2]);
+                        const index     = this.#visitor(node.children[4]);
+                        const from      = this.#visitor(node.children[6]);
+                        const position  = node.children[0].children.position;
+
+                        this.#add_operation("set", [array, index, from], position);
+
+                        return this.#copy_value(this.#add_value(Object.typeof.null));
                     }
                 }
             }
@@ -495,12 +497,19 @@ class Program
         throw new Error(message);
     }
 
-    run () 
+    #print_data(comment = "")
     {
+        console.log(comment);
+        console.log("---------------");
         for(const x in this.#data)
         {
             console.log(`${x}: ${Object.symbol_name.get(this.#data[x].symbol_type)} \t${Object.data_name.get(this.#data[x].type)} \t${this.#data[x].data}`);
         }
+    }
+
+    run () 
+    {
+        this.#print_data();
         for(const x of this.#operations)
         {
             console.log(`${x.type} ${x.operands}`);
@@ -596,6 +605,44 @@ class Program
                 }
                 break;
 
+                case "get":
+                {
+                    const destination   = operands[0];
+                    const array         = this.#data[operands[1]];
+                    const index         = this.#data[operands[2]];
+                    const object        = this.#data[array.data[index.data]];
+
+                    if (array.type !== Object.typeof.array ||
+                        index.type !== Object.typeof.number
+                    )
+                    {
+                        evoke_error();
+                    }
+
+                    this.#data[destination].type = object.type;
+                    this.#data[destination].data = object.data;
+                }
+                break;
+
+                case "set":
+                {
+                    const array         = this.#data[operands[0]];
+                    const index         = this.#data[operands[1]];
+                    const from          = this.#data[operands[2]];
+                    const object        = this.#data[array.data[index.data]];
+
+                    if (array.type !== Object.typeof.array ||
+                        index.type !== Object.typeof.number
+                    )
+                    {
+                        evoke_error();
+                    }
+
+                    object.type = from.type;
+                    object.data = from.data;
+                }
+                break;
+
                 case "bool":
                 {
                     switch (this.#data[operands[1]].type)
@@ -668,28 +715,11 @@ class Program
                         this.#evoke_error();
                     }
 
-                    this.#data[operands[0]].type = 
-                    this.#data[operands[1]].type;
-                    this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data.slice(
+                    this.#data[operands[0]].type = this.#data[operands[1]].type;
+                    this.#data[operands[0]].data = this.#data[operands[1]].data.slice(
                         this.#data[operands[2]].data,
                         this.#data[operands[3]].data
                     );
-                }
-                break;
-
-                case "arac":
-                {
-                    if (this.#data[operands[1]].type !== Object.typeof.array ||
-                        this.#data[operands[2]].type !== Object.typeof.number
-                    )
-                    {
-                        this.#evoke_error();
-                    }
-
-                    const object = this.#data[this.#data[operands[1]].data[this.#data[operands[2]].data]];
-                    this.#data[operands[0]].type = object.type;
-                    this.#data[operands[0]].data = object.data;
                 }
                 break;
 

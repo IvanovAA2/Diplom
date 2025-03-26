@@ -52,6 +52,9 @@ class Lexer
         "stringToken",
         "array",
 
+        "set",
+        "get",
+
         "bool",
         "number",
         "string",
