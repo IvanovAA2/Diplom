@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <meta charset=utf-8>
+        <title>Parser1</title>
+    </head>
+
+    <link rel="stylesheet" href="style.css">
+
+    <body>
+        <textarea cols=150 id=programInput rows=25 placeholder="Input"></textarea>
+
+        <input type="file" id="inputFile" style="display: none;">
+        <br>
+        <button id="chooseInputFileButton">Input file</button>
+        <button id="runButton">Run</button>
+        <p id="inputFileName">File is not chosen</p>
+
+        <textarea cols=150 id=programOutput rows=10 readonly  placeholder="Output"></textarea>
+    </body>
+
+    <script src="main.js"></script>
+    <script src="Lexer.js"></script>
+    <script src="Parser.js"></script>
+    <script src="Program.js"></script>
+</html>
