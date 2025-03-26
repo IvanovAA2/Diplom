@@ -1,4 +1,4 @@
-
+// bruh
 class Object
 {
     symbol_type;
