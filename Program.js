@@ -88,8 +88,6 @@ class Program
 
     #visitor (node, arg)
     {
-        console.log(node.rule_name);
-
         switch (node.rule_name)
         {
             // just branching
@@ -277,7 +275,7 @@ class Program
                 return this.#visitor(node.children[1]);
             }
 
-            case "bool":
+            case "Boolean":
             {
                 const destination       = this.#add_value(Object.typeof.bool);
                 const position          = node.children[0].children.position;
@@ -286,7 +284,7 @@ class Program
 
                 return destination;
             }
-            case "number":
+            case "Number":
             {
                 const destination       = this.#add_value(Object.typeof.number);
                 const position          = node.children[0].children.position;
@@ -295,7 +293,7 @@ class Program
 
                 return destination;
             }
-            case "string":
+            case "String":
             {
                 const destination       = this.#add_value(Object.typeof.string);
                 const position          = node.children[0].children.position;
@@ -669,6 +667,7 @@ class Program
                             this.#evoke_error();
                     }
                 }
+                break;
 
                 case "num":
                 {
@@ -686,6 +685,7 @@ class Program
                             this.#evoke_error();
                     }
                 }
+                break;
 
                 case "str":
                 {
@@ -703,6 +703,7 @@ class Program
                             this.#evoke_error();
                     }
                 }
+                break;
 
                 case "slice":
                 {

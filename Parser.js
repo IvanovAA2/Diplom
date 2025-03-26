@@ -347,7 +347,6 @@ class Parser
     #get_parse_tree (rule_name)
     {
         var node = new Node(rule_name);
-        console.log(rule_name);
 
         if (Parser.#is_terminal(rule_name)) 
         {
