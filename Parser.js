@@ -221,7 +221,8 @@ class Parser
         ],
         Slice :
         [
-            ["[", "Expression", ":", "Expression", "]"]
+            ["[", "Expression", ":", "Expression", "]"],
+            [NOP],
         ],
         Value :
         [
