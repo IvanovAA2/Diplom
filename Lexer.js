@@ -59,6 +59,11 @@ class Lexer
         "number",
         "string",
 
+        "isBool",
+        "isNumber",
+        "isString",
+        "isArray",
+
         "print",
         "input",
         

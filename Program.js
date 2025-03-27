@@ -309,7 +309,7 @@ class Program
 
             case "Boolean":
             {
-                const destination       = this.#add_value(Object.typeof.bool);
+                const destination       = this.#add_value();
                 const position          = node.children[0].children.position;
                 
                 this.#add_operation("bool", [destination, this.#visitor(node.children[2])], position);
@@ -318,7 +318,7 @@ class Program
             }
             case "Number":
             {
-                const destination       = this.#add_value(Object.typeof.number);
+                const destination       = this.#add_value();
                 const position          = node.children[0].children.position;
                 
                 this.#add_operation("num", [destination, this.#visitor(node.children[2])], position);
@@ -327,7 +327,7 @@ class Program
             }
             case "String":
             {
-                const destination       = this.#add_value(Object.typeof.string);
+                const destination       = this.#add_value();
                 const position          = node.children[0].children.position;
                 
                 this.#add_operation("str", [destination, this.#visitor(node.children[2])], position);
@@ -407,12 +407,49 @@ class Program
                     case "set":
                     {
                         const destination   = this.#add_value();
-                        const array     = this.#visitor(node.children[2]);
-                        const index     = this.#visitor(node.children[4]);
-                        const from      = this.#visitor(node.children[6]);
-                        const position  = node.children[0].children.position;
+                        const array         = this.#visitor(node.children[2]);
+                        const index         = this.#visitor(node.children[4]);
+                        const from          = this.#visitor(node.children[6]);
+                        const position      = node.children[0].children.position;
 
                         this.#add_operation("set", [destination, array, index, from], position);
+
+                        return destination;
+                    }
+
+                    case "isBool":
+                    {
+                        const destination   = this.#add_value();
+                        const position      = node.children[0].children.position;
+
+                        this.#add_operation("isb", [destination, this.#visitor(node.children[2])], position);
+
+                        return destination;
+                    }
+                    case "isNumber":
+                    {
+                        const destination   = this.#add_value();
+                        const position      = node.children[0].children.position;
+
+                        this.#add_operation("isn", [destination, this.#visitor(node.children[2])], position);
+
+                        return destination;
+                    }
+                    case "isString":
+                    {
+                        const destination   = this.#add_value();
+                        const position      = node.children[0].children.position;
+
+                        this.#add_operation("iss", [destination, this.#visitor(node.children[2])], position);
+
+                        return destination;
+                    }
+                    case "isArray":
+                    {
+                        const destination   = this.#add_value();
+                        const position      = node.children[0].children.position;
+
+                        this.#add_operation("isa", [destination, this.#visitor(node.children[2])], position);
 
                         return destination;
                     }
@@ -559,7 +596,8 @@ class Program
     #print_data(comment = "")
     {
         console.log(comment);
-        console.log("---------------");
+        console.log(Array(15).join('-'));
+
         for(const x in this.#data)
         {
             console.log(`${x}: ${Object.symbol_name.get(this.#data[x].symbol_type)} \t${Object.data_name.get(this.#data[x].type)} \t${this.#data[x].data}`);
@@ -920,6 +958,43 @@ class Program
                 }
                 break;
 
+                case "isb":
+                {
+                    const destination   = this.#data[operands[0]];
+                    const value         = this.#data[operands[1]];
+
+                    destination.type = Object.typeof.bool;
+                    destination.data = value.type === Object.typeof.bool;
+                }
+                break;
+                case "isn":
+                {
+                    const destination   = this.#data[operands[0]];
+                    const value         = this.#data[operands[1]];
+
+                    destination.type = Object.typeof.bool;
+                    destination.data = value.type === Object.typeof.number;
+                }
+                break;
+                case "iss":
+                {
+                    const destination   = this.#data[operands[0]];
+                    const value         = this.#data[operands[1]];
+
+                    destination.type = Object.typeof.bool;
+                    destination.data = value.type === Object.typeof.string;
+                }
+                break;
+                case "isa":
+                {
+                    const destination   = this.#data[operands[0]];
+                    const value         = this.#data[operands[1]];
+
+                    destination.type = Object.typeof.bool;
+                    destination.data = value.type === Object.typeof.array;
+                }
+                break;
+
                 case "accs":
                 {
                     const array = this.#data[operands[1]];
@@ -957,6 +1032,8 @@ class Program
 
                 case "bool":
                 {
+                    this.#data[operands[0]].type = Object.typeof.bool;
+
                     switch (this.#data[operands[1]].type)
                     {
                         case Object.typeof.bool:
@@ -985,6 +1062,8 @@ class Program
 
                 case "num":
                 {
+                    this.#data[operands[0]].type = Object.typeof.number;
+
                     switch (this.#data[operands[1]].type)
                     {
                         case Object.typeof.bool:
@@ -1003,6 +1082,8 @@ class Program
 
                 case "str":
                 {
+                    this.#data[operands[0]].type = Object.typeof.string;
+
                     switch (this.#data[operands[1]].type)
                     {
                         case Object.typeof.bool:

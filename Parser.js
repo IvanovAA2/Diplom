@@ -260,6 +260,10 @@ class Parser
             ["input", "(", "Parameters", ")"],
             ["get", "(", "Expression", ",", "Expression", ")"],
             ["set", "(", "Expression", ",", "Expression", ",", "Expression", ")"],
+            ["isBool", "(", "Expression", ")"],
+            ["isNumber", "(", "Expression", ")"],
+            ["isString", "(", "Expression", ")"],
+            ["isArray", "(", "Expression", ")"],
         ],
 
         Parameters :
