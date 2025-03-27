@@ -16,6 +16,8 @@ class Object
         number  : 2,
         string  : 3,
         array   : 4,
+
+        ref     : 5,
     }
 
     static data_name = new Map
@@ -25,6 +27,7 @@ class Object
         [2, "number"],
         [3, "string"],
         [4, "array"],
+        [5, "ref"],
     ])
 
     static symbol_name = new Map
@@ -197,6 +200,56 @@ class Program
 
                 return this.#visitor(node.children[1], this.#visitor(node.children[0]));
             }
+            case "Accessing":
+            {
+                if (node.children[2].rule_name === "]")
+                {
+                    const destination   = this.#add_value(Object.typeof.ref, null);
+                    const array         = arg;
+                    const index         = this.#visitor(node.children[1]);
+                    const position      = node.children[0].children.position;
+
+                    this.#add_operation("accs", [destination, array, index], position);
+
+                    if (node.children.length === 4) // "[" "Expression" "]" "Accessing"
+                    {
+                        return this.#visitor(node.children[3], destination);
+                    }
+                    if (node.children.length === 3) // "[" "Expression" "]"
+                    {
+                        return destination;
+                    }
+                }
+                else
+                {
+                    const destination = this.#add_value();
+
+                    this.#add_operation(
+                    "slice", 
+                    [
+                        destination, 
+                        arg, 
+                        this.#visitor(node.children[1]), 
+                        this.#visitor(node.children[2])
+                    ], 
+                    node.children[0].children.position
+                    );
+
+                    if (node.children.length === 5) // "[" "Expression", "Slice" "]" "Accessing"
+                    {
+                        return this.#visitor(node.children[4], destination);
+                    }
+                    if (node.children.length === 4) // "[" "Expression", "Slice" "]"
+                    {
+                        return destination;
+                    }
+                }
+                throw new Error("Accessing ill-formed");
+            }
+            case "Slice":
+            {
+                return this.#visitor(node.children[1]);
+            }
 
             case "null":
             {
@@ -230,11 +283,11 @@ class Program
                     return this.#copy_value(this.#add_value(Object.typeof.array, this.#visitor(node.children[1])));
                 }
 
-                return this.#copy_value(this.#add_value(Object.typeof.array, [this.#visitor(node.children[1])]));
+                return this.#copy_value(this.#add_value(Object.typeof.array, [this.#make_variable(this.#visitor(node.children[1]))]));
             }
             case "$Array":
             {
-                var array = [this.#visitor(node.children[0])];
+                var array = [this.#make_variable(this.#visitor(node.children[0]))];
 
                 if (node.children.length === 2)
                 {
@@ -245,7 +298,7 @@ class Program
             }
             case "$$Array":
             {
-                arg.push(this.#visitor(node.children[1]));
+                arg.push(this.#make_variable(this.#visitor(node.children[1])));
 
                 if (node.children.length === 3)
                 {
@@ -253,28 +306,6 @@ class Program
                 }
             }
             break;
-
-            case "Slice":
-            {
-                const destination = this.#add_value();
-
-                this.#add_operation(
-                    "slice", 
-                    [
-                        destination, 
-                        arg, 
-                        this.#visitor(node.children[1]), 
-                        this.#visitor(node.children[2])
-                    ], 
-                    node.children[0].children.position
-                );
-
-                return destination;
-            }
-            case "StringAccessing":
-            {
-                return this.#visitor(node.children[1]);
-            }
 
             case "Boolean":
             {
@@ -423,6 +454,13 @@ class Program
         return destination;
     }
 
+    #make_variable (position)
+    {
+        this.#data[position].symbol_type = Object.typeof.variable;
+
+        return position;
+    }
+
     #add_operation (type, operands, position)
     {
         this.#operations.push(new Operation(type, operands, position));
@@ -527,6 +565,14 @@ class Program
             const operation_type        = current_operation.type;
             const operands              = current_operation.operands;
             const position              = current_operation.position;
+
+            for (const index in operands)
+            {
+                if (index !== 0 && this.#data[operands[index]].type === Object.typeof.ref)
+                {
+                    operands[index] = this.#data[operands[index]].data;
+                }
+            }
 
             switch (operation_type)
             {
@@ -821,6 +867,41 @@ class Program
                 }
                 break;
 
+                case "accs":
+                {
+                    const array = this.#data[operands[1]];
+                    const index = this.#data[operands[2]];
+
+                    if (array.type !== Object.typeof.arary ||
+                        index.type !== Object.typeof.number 
+                    )
+                    {
+                        this.#evoke_error();
+                    }
+
+                    this.#data[operands[0]].data = array.data[index.data];
+                }
+                break;
+
+                case "slice":
+                {
+                    if (this.#data[operands[1]].type !== Object.typeof.string &&
+                        this.#data[operands[1]].type !== Object.typeof.arary ||
+                        this.#data[operands[2]].type !== Object.typeof.number ||
+                        this.#data[operands[3]].type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
+
+                    this.#data[operands[0]].type = this.#data[operands[1]].type;
+                    this.#data[operands[0]].data = this.#data[operands[1]].data.slice(
+                        this.#data[operands[2]].data,
+                        this.#data[operands[3]].data
+                    );
+                }
+                break;
+
                 case "bool":
                 {
                     switch (this.#data[operands[1]].type)
@@ -882,25 +963,6 @@ class Program
                         default:
                             this.#evoke_error();
                     }
-                }
-                break;
-
-                case "slice":
-                {
-                    if (this.#data[operands[1]].type !== Object.typeof.string &&
-                        this.#data[operands[1]].type !== Object.typeof.arary ||
-                        this.#data[operands[2]].type !== Object.typeof.number ||
-                        this.#data[operands[3]].type !== Object.typeof.number
-                    )
-                    {
-                        this.#evoke_error();
-                    }
-
-                    this.#data[operands[0]].type = this.#data[operands[1]].type;
-                    this.#data[operands[0]].data = this.#data[operands[1]].data.slice(
-                        this.#data[operands[2]].data,
-                        this.#data[operands[3]].data
-                    );
                 }
                 break;
 

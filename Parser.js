@@ -222,11 +222,16 @@ class Parser
 
         $Value :
         [
-            ["Value", "Slice"]
+            ["Value", "Accessing"]
+        ],
+        Accessing :
+        [
+            ["[", "Expression", "Slice", "]", "Accessing"],
+            [NOP],
         ],
         Slice :
         [
-            ["[", "Expression", ":", "Expression", "]"],
+            [":", "Expression"],
             [NOP],
         ],
         Value :
