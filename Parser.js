@@ -244,11 +244,11 @@ class Parser
             ["String"],
             ["Array"],
 
-            ["id", "$id"],
+            ["id", "FunctionCall"],
             ["DefaultFunctionCall"],
         ],
 
-        $id :
+        FunctionCall :
         [
             ["(", "Parameters", ")"],
             [NOP],

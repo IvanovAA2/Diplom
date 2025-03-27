@@ -122,7 +122,7 @@ class Program
                     const variable_name = node.children[1].children.string;
                     const position      = node.children[1].children.position;
 
-                    this.#create_variable(variable_name, this.#copy_value(this.#add_value(Object.typeof.null)), position);
+                    this.#create_variable(variable_name, this.#create_value(Object.typeof.null, null), position);
                 }
                 else 
                 {
@@ -253,37 +253,37 @@ class Program
 
             case "null":
             {
-                return this.#copy_value(this.#add_value(Object.typeof.null));
+                return this.#create_value(Object.typeof.null, null, node.children.position);
             }
             case "true":
             {
-                return this.#copy_value(this.#add_value(Object.typeof.bool, true));
+                return this.#create_value(Object.typeof.bool, true, node.children.position);
             }
             case "false":
             {
-                return this.#copy_value(this.#add_value(Object.typeof.bool, false));
+                return this.#create_value(Object.typeof.bool, false, node.children.position);
             }
             case "numberToken":
             {
-                return this.#copy_value(this.#add_value(Object.typeof.number, Number(node.children.string)));
+                return this.#create_value(Object.typeof.number, Number(node.children.string), node.children.position);
             }
             case "stringToken":
             {
-                return this.#copy_value(this.#add_value(Object.typeof.string, node.children.string));
+                return this.#create_value(Object.typeof.string, node.children.string, node.children.position);
             }
             case "Array":
             {
                 if (node.children.length === 2) // "[" "]"
                 {
-                    return this.#copy_value(this.#add_value(Object.typeof.array, []));
+                    return this.#create_value(Object.typeof.array, [], node.children.position);
                 }
                 // "[" "$Array" "]"
                 if (node.children[1].rule_name === "$Array")
                 {
-                    return this.#copy_value(this.#add_value(Object.typeof.array, this.#visitor(node.children[1])));
+                    return this.#create_value(Object.typeof.array, this.#visitor(node.children[1]), node.children.position);
                 }
 
-                return this.#copy_value(this.#add_value(Object.typeof.array, [this.#make_variable(this.#visitor(node.children[1]))]));
+                return this.#create_value(Object.typeof.array, [this.#make_variable(this.#visitor(node.children[1]))], node.children.position);
             }
             case "$Array":
             {
@@ -343,7 +343,7 @@ class Program
                 return this.#get_id(id_name, position);
             }
 
-            case "$id": // function call
+            case "FunctionCall":
             {
                 const destination = this.#add_value();
                 // TODO
@@ -390,26 +390,27 @@ class Program
 
                     case "set":
                     {
+                        const destination   = this.#add_value();
                         const array     = this.#visitor(node.children[2]);
                         const index     = this.#visitor(node.children[4]);
                         const from      = this.#visitor(node.children[6]);
                         const position  = node.children[0].children.position;
 
-                        this.#add_operation("set", [array, index, from], position);
+                        this.#add_operation("set", [destination, array, index, from], position);
 
-                        return this.#copy_value(this.#add_value(Object.typeof.null));
+                        return destination;
                     }
                 }
             }
 
-            case "Parameters":
+            case "Parameters": // REDO
             {
                 arg.push(this.#visitor(node.children[0]));
 
                 this.#visitor(node.children[1], arg);
             }
             break;
-            case "$Parameters":
+            case "$Parameters": // REDO
             {
                 arg.push(this.#visitor(node.children[1]));
 
@@ -435,21 +436,21 @@ class Program
         }
     }
 
-    #add_value (type = Object.typeof.null, data = null)
-    {
-        const position = this.#data.length;
-
-        this.#data.push(new Object(Object.typeof.value, type, structuredClone(data)));
-
-        return position;
-    }
-
-    #copy_value (from)
+    #create_value (type, data, position)
     {
         const destination = this.#data.length;
 
-        this.#data.push(new Object(Object.typeof.value, Object.typeof.null, null));
-        this.#add_operation("copy", [destination, from], null);
+        this.#data.push(new Object(Object.typeof.value));
+        this.#add_operation("create", [destination, type, data], position);
+
+        return destination;
+    }
+
+    #add_value (type = Object.typeof.null, data = null)
+    {
+        const destination = this.#data.length;
+
+        this.#data.push(new Object(Object.typeof.value, type, data));
 
         return destination;
     }
@@ -466,7 +467,7 @@ class Program
         this.#operations.push(new Operation(type, operands, position));
     }
 
-    #create_variable (name, index, position)
+    #create_variable (name, from, position)
     {
         if (this.#scope_tree[this.#current_scope].symbol_table.has(name))
         {
@@ -474,8 +475,9 @@ class Program
         }
 
         const variable_position = this.#data.length;
+
         this.#data.push(new Object(Object.typeof.variable, Object.typeof.null, null));
-        this.#add_operation("=", [variable_position, index], position);
+        this.#add_operation("=", [variable_position, from], position);
 
         this.#scope_tree[this.#current_scope].symbol_table.set(name, variable_position);
     }
@@ -528,7 +530,7 @@ class Program
             {
                 message += Object.data_name.get(this.#data[operands[index]].type);
             }
-            if (index === to)
+            if (index == to)
             {
                 break;
             }
@@ -551,10 +553,6 @@ class Program
     run () 
     {
         this.#print_data();
-        for(const x of this.#operations)
-        {
-            console.log(`${x.type} ${x.operands}`);
-        }
         console.log(this.#data);
 
         this.#return_jumps = [];
@@ -566,20 +564,31 @@ class Program
             const operands              = current_operation.operands;
             const position              = current_operation.position;
 
-            for (const index in operands)
+            // DEBUG
+
+            if (operation_type !== "create")
             {
-                if (index !== 0 && this.#data[operands[index]].type === Object.typeof.ref)
+                for (const index in operands)
                 {
-                    operands[index] = this.#data[operands[index]].data;
+                    if (this.#data[operands[index]].type === Object.typeof.ref &&
+                        !(operation_type === "accs" && index == 0)
+                    )
+                    {
+                        operands[index] = this.#data[operands[index]].data;
+                    }
                 }
             }
 
+            console.log(operation_type, Array(8 - operation_type.length + 1).join(' '), operands);
+
+            // DEBUG
+
             switch (operation_type)
             {
-                case "copy":
+                case "create":
                 {
-                    this.#data[operands[0]].type = this.#data[operands[1]].type;
-                    this.#data[operands[0]].data = structuredClone(this.#data[operands[1]].data);
+                    this.#data[operands[0]].type = operands[1];
+                    this.#data[operands[0]].data = structuredClone(operands[2]);
                 }
                 break;
                 case "=":
@@ -872,7 +881,7 @@ class Program
                     const array = this.#data[operands[1]];
                     const index = this.#data[operands[2]];
 
-                    if (array.type !== Object.typeof.arary ||
+                    if (array.type !== Object.typeof.array ||
                         index.type !== Object.typeof.number 
                     )
                     {
@@ -886,7 +895,7 @@ class Program
                 case "slice":
                 {
                     if (this.#data[operands[1]].type !== Object.typeof.string &&
-                        this.#data[operands[1]].type !== Object.typeof.arary ||
+                        this.#data[operands[1]].type !== Object.typeof.array ||
                         this.#data[operands[2]].type !== Object.typeof.number ||
                         this.#data[operands[3]].type !== Object.typeof.number
                     )
