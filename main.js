@@ -77,12 +77,23 @@ function run(input)
     var parse_tree;
     var program;
 
-    lexer = new Lexer(input);
-    tokens = lexer.get_tokens();
+    // lexer = new Lexer(input);
+    // tokens = lexer.get_tokens();
+
+    // console.log(tokens);
+
+    // parser = new Parser(tokens);
+    // parse_tree = parser.parse();
+
+    // console.log(parse_tree);
+
+    // program = new Program(parse_tree);
+    // program.run();
 
     try
     {
-        
+        lexer = new Lexer(input);
+        tokens = lexer.get_tokens();
     }
     catch (error)
     {
@@ -90,18 +101,16 @@ function run(input)
         return;
     }
 
-    console.log(tokens);
+    try
+    {
+        console.log(tokens);
 
-    parser = new Parser(tokens);
+        parser = new Parser(tokens);
         parse_tree = parser.parse();
 
         console.log(parse_tree);
 
         program = new Program(parse_tree);
-    
-    try
-    {
-        
     }
     catch (error)
     {
@@ -109,11 +118,9 @@ function run(input)
         return;
     }
 
-    program.run();
-    
     try
     {
-        
+        program.run();
     }
     catch (error)
     {
