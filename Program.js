@@ -356,7 +356,7 @@ class Program
                 {
                     case "print":
                     {
-                        const position  = node.children.position;
+                        const position  = node.children[0].children.position;
                         var parameters  = [];
 
                         if (node.children.length === 4)
@@ -374,6 +374,22 @@ class Program
                         this.#add_operation("print", parameters, position);
 
                         return this.#add_value();
+                    }
+                    case "input":
+                    {
+                        const position      = node.children[0].children.position;
+                        const destination   = this.#add_value();
+                        var text            = -1;
+
+                        if (node.children.length === 4) 
+                        {
+                            text = this.#visitor(node.children[2]);
+                        }
+
+                        this.#add_operation("await", [text], position);
+                        this.#add_operation("input", [destination], position);
+
+                        return destination;
                     }
 
                     case "get":
@@ -552,11 +568,16 @@ class Program
 
     run () 
     {
-        this.#print_data();
-        console.log(this.#data);
+        if (this.#current_operation === 0)
+        {
+            this.#print_data();
+            console.log(this.#data);
 
-        this.#return_jumps = [];
+            this.#return_jumps = [];
+        }
 
+        var end = false;
+        
         while (this.#current_operation < this.#operations.length)
         {
             const current_operation     = this.#operations[this.#current_operation];
@@ -835,6 +856,29 @@ class Program
                             break;
                         }
                      }
+                }
+                break;
+                case "await":
+                {
+                    const position  = operands[0];
+                    var text        = "Input";
+
+                    if (position !== -1)
+                    {
+                        text = String(this.#data[position].data);
+                    }
+
+                    end = true;
+                    wait_for_input(text);
+                }
+                break;
+                case "input":
+                {
+                    const destination   = operands[0];
+                    const text          = get_input();       
+
+                    this.#data[destination].type = Object.typeof.string;
+                    this.#data[destination].data = text;
                 }
                 break;
 
@@ -1330,6 +1374,10 @@ class Program
             }
 
             ++this.#current_operation;
+            if (end)
+            {
+                break;
+            }
         }
     }
 }

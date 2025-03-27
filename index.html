@@ -9,12 +9,17 @@
     <link rel="stylesheet" href="style.css">
 
     <body>
-        <textarea cols=150 id=programInput rows=25 placeholder="Input"></textarea>
+        <textarea cols=150 id=programInput rows=20 placeholder="Input"></textarea>
 
         <input type="file" id="inputFile" style="display: none;">
         <br>
         <button id="chooseInputFileButton">Input file</button>
         <button id="runButton">Run</button>
+        <br>
+        <textarea type="text" id="inputStream" cols=150 rows=10 disabled></textarea>
+        <br>
+        <button id="inputStreamButton" disabled>Submit input</button>
+        <br>
         <p id="inputFileName">File is not chosen</p>
 
         <textarea cols=150 id=programOutput rows=10 readonly  placeholder="Output"></textarea>

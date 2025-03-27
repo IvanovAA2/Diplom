@@ -10,6 +10,9 @@ const programOutput = document.getElementById("programOutput");
 
 const runButton = document.getElementById('runButton');
 
+const inputStream = document.getElementById('inputStream');
+const inputStreamButton = document.getElementById('inputStreamButton');
+
 // Ввод текста из файла
 
 chooseInputFileButton.addEventListener('click', function() 
@@ -17,7 +20,7 @@ chooseInputFileButton.addEventListener('click', function()
     inputFile.click();
 });
 
-inputFile.addEventListener('change', function() 
+inputFile.addEventListener ('change', function() 
 {
     const selectedFile = inputFile.files[0];
 
@@ -30,7 +33,7 @@ inputFile.addEventListener('change', function()
     }
 });
 
-function load_input(file) 
+function load_input (file) 
 {
     var fr = new FileReader();
 
@@ -45,12 +48,15 @@ function load_input(file)
 
 // Исполнене
 
-function clearOutput()
+function clearOutput ()
 {
     programOutput.value = "";
+    
+    inputStream.value = "";
+    inputStream.placeholder = "";
 }
 
-function addOutput(text, new_line = false)
+function addOutput (text, new_line = false)
 {
     programOutput.value += text;
     if (new_line) 
@@ -64,18 +70,39 @@ runButton.addEventListener('click', function()
     run(programInput.value);
 });
 
+var lexer;
+var tokens;
+var parser;
+var parse_tree;
+var program;
+
+function wait_for_input (text)
+{
+    inputStream.disabled = false;
+    inputStreamButton.disabled = false;
+
+    inputStream.placeholder = text;
+}
+
+inputStreamButton.addEventListener('click', function() 
+{
+    inputStream.disabled = true;
+    inputStreamButton.disabled = true;
+
+    program.run();
+});
+
+function get_input ()
+{
+    return inputStream.value;
+}
+
 function run(input) 
 {
     
 
     console.log("Running:\n" + input);
     clearOutput();
-
-    var lexer;
-    var tokens;
-    var parser;
-    var parse_tree;
-    var program;
 
     lexer = new Lexer(input);
     tokens = lexer.get_tokens();
