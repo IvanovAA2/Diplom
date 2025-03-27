@@ -222,11 +222,16 @@ class Parser
 
         $Value :
         [
-            ["Value", "Slice"]
+            ["Value", "Accessing"]
+        ],
+        Accessing :
+        [
+            ["[", "Expression", "Slice", "]", "Accessing"],
+            [NOP],
         ],
         Slice :
         [
-            ["[", "Expression", ":", "Expression", "]"],
+            [":", "Expression"],
             [NOP],
         ],
         Value :
@@ -239,11 +244,11 @@ class Parser
             ["String"],
             ["Array"],
 
-            ["id", "$id"],
+            ["id", "FunctionCall"],
             ["DefaultFunctionCall"],
         ],
 
-        $id :
+        FunctionCall :
         [
             ["(", "Parameters", ")"],
             [NOP],
