@@ -160,9 +160,10 @@ class Program
             // operations
             case "$AssignOp":
             {
-                const position = node.children[0].children.position;
+                const operation_type    = node.children[0].children.type;
+                const position          = node.children[0].children.position;
 
-                this.#add_operation("=", [arg, this.#visitor(node.children[1])], position);
+                this.#add_operation(operation_type, [arg, this.#visitor(node.children[1])], position);
                         
                 return arg;
             }
@@ -471,7 +472,7 @@ class Program
         this.#current_scope = this.#scope_tree[this.#current_scope].parent;
     }
 
-    #evoke_error (from = 1)
+    #evoke_error (from = 1, to = 1e9)
     {
         const current_operation = this.#operations[this.#current_operation];
         const operation_type    = current_operation.type;
@@ -487,7 +488,11 @@ class Program
             }
             if (index >= from) 
             {
-                message += Object.nameof.get(this.#data[operands[index]].type);
+                message += Object.data_name.get(this.#data[operands[index]].type);
+            }
+            if (index === to)
+            {
+                break;
             }
         }
         message += `] at (${position.row}, ${position.column})`;
@@ -533,8 +538,183 @@ class Program
                 break;
                 case "=":
                 {
+                    if (this.#data[operands[0]].symbol_type !== Object.typeof.variable)
+                    {
+                        throw new Error(`can't assign to not variable at (${position.row}, ${position.column})`);
+                    }
                     this.#data[operands[0]].type = this.#data[operands[1]].type;
                     this.#data[operands[0]].data = this.#data[operands[1]].data;
+                }
+                break;
+                case "+=":
+                {
+                    if (this.#data[operands[0]].symbol_type !== Object.typeof.variable)
+                    {
+                        throw new Error(`can't assign to not variable at (${position.row}, ${position.column})`);
+                    }
+                    if (this.#data[operands[0]].type === Object.typeof.array &&
+                        this.#data[operands[1]].type === Object.typeof.array 
+                    )
+                    {
+                        this.#data[operands[0]].data.push(...this.#data[operands[1]].data);
+
+                        break;
+                    }
+                    if (this.#data[operands[0]].type === Object.typeof.null ||
+                        this.#data[operands[1]].type === Object.typeof.null ||
+                        this.#data[operands[0]].type === Object.typeof.array ||
+                        this.#data[operands[1]].type === Object.typeof.array 
+                    )
+                    {
+                        this.#evoke_error();
+                    }
+
+                    this.#data[operands[0]].type = 
+                    Math.max(this.#data[operands[0]].type, this.#data[operands[1]].type, Object.typeof.number);
+                    this.#data[operands[0]].data += this.#data[operands[1]].data;
+                }
+                break;
+                case "-=":
+                {
+                    if (this.#data[operands[0]].symbol_type !== Object.typeof.variable)
+                    {
+                        throw new Error(`can't assign to not variable at (${position.row}, ${position.column})`);
+                    }
+                    if (this.#data[operands[0]].type !== Object.typeof.bool &&
+                        this.#data[operands[0]].type !== Object.typeof.number ||
+                        this.#data[operands[1]].type !== Object.typeof.bool &&
+                        this.#data[operands[1]].type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
+
+                    this.#data[operands[0]].type = Object.typeof.number;
+                    this.#data[operands[0]].data -= this.#data[operands[1]].data;
+                }
+                break;
+                case "*=":
+                {
+                    if (this.#data[operands[0]].symbol_type !== Object.typeof.variable)
+                    {
+                        throw new Error(`can't assign to not variable at (${position.row}, ${position.column})`);
+                    }
+                    if (this.#data[operands[1]].type !== Object.typeof.number &&
+                        this.#data[operands[1]].type !== Object.typeof.bool ||
+                        this.#data[operands[0]].type === Object.typeof.null
+                    )
+                    {
+                        this.#evoke_error();
+                    }
+                    if (this.#data[operands[0]].type === Object.typeof.array)
+                    {
+                        var number = this.#data[operands[1]].data;
+                        if (this.#data[operands[1]].type === Object.typeof.number) 
+                        {
+                            number = Math.trunc(number);
+                        }
+                        else
+                        {
+                            number = Number(number);
+                        }
+
+                        var array = [];
+                        for (var count = 0; count < number; ++count)
+                        {
+                            array.push(...this.#data[operands[0]].data);
+                        }
+
+                        this.#data[operands[0]].data = array;
+
+                        break;
+                    }
+                    if (this.#data[operands[0]].type === Object.typeof.string)
+                    {
+                        var number = this.#data[operands[1]].data;
+                        if (this.#data[operands[1]].type === Object.typeof.number) 
+                        {
+                            number = Math.trunc(number);
+                        }
+                        else
+                        {
+                            number = Number(number);
+                        }
+                        
+                        var string = "";
+                        for (var count = 0; count < number; ++count)
+                        {
+                            string += this.#data[operands[0]].data;
+                        }
+
+                        this.#data[operands[0]].data = string;
+
+                        break;
+                    }
+
+                    this.#data[operands[0]].type = Object.typeof.number;
+                    this.#data[operands[0]].data *= this.#data[operands[1]].data;
+                }
+                break;
+                case "/=":
+                {
+                    if (this.#data[operands[0]].symbol_type !== Object.typeof.variable)
+                    {
+                        throw new Error(`can't assign to not variable at (${position.row}, ${position.column})`);
+                    }
+                    if (this.#data[operands[0]].type !== Object.typeof.number ||
+                        this.#data[operands[1]].type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
+                    if (this.#data[operands[1]].data === 0)
+                    {
+                        throw new Error(`division by zero at (${position.row}, ${position.column})`);
+                    }
+
+                    this.#data[operands[0]].data /= this.#data[operands[1]].data;
+                }
+                break;
+                case "//=":
+                {
+                    if (this.#data[operands[0]].symbol_type !== Object.typeof.variable)
+                    {
+                        throw new Error(`can't assign to not variable at (${position.row}, ${position.column})`);
+                    }
+                    if (this.#data[operands[0]].type !== Object.typeof.number ||
+                        this.#data[operands[1]].type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
+                    if (this.#data[operands[1]].data === 0)
+                    {
+                        throw new Error(`division by zero at (${position.row}, ${position.column})`);
+                    }
+
+                    this.#data[operands[0]].type = Object.typeof.number;
+                    this.#data[operands[0]].data = 
+                    Math.trunc(this.#data[operands[0]].data / this.#data[operands[1]].data);
+                }
+                break;
+                case "%=":
+                {
+                    if (this.#data[operands[0]].symbol_type !== Object.typeof.variable)
+                    {
+                        throw new Error(`can't assign to not variable at (${position.row}, ${position.column})`);
+                    }
+                    if (this.#data[operands[0]].type !== Object.typeof.number ||
+                        this.#data[operands[1]].type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
+                    if (this.#data[operands[1]].data === 0)
+                    {
+                        throw new Error(`division by zero at (${position.row}, ${position.column})`);
+                    }
+
+                    this.#data[operands[0]].data %= this.#data[operands[1]].data;
                 }
                 break;
 
@@ -922,6 +1102,17 @@ class Program
 
                 case "+":
                 {
+                    if (this.#data[operands[1]].type === Object.typeof.array &&
+                        this.#data[operands[2]].type === Object.typeof.array 
+                    )
+                    {
+                        this.#data[operands[0]].type = Object.typeof.array ;
+                        this.#data[operands[0]].data = [];
+                        this.#data[operands[0]].data.push(...this.#data[operands[1]].data);
+                        this.#data[operands[0]].data.push(...this.#data[operands[2]].data);
+
+                        break;
+                    }
                     if (this.#data[operands[1]].type === Object.typeof.null ||
                         this.#data[operands[2]].type === Object.typeof.null ||
                         this.#data[operands[1]].type === Object.typeof.array ||
@@ -932,7 +1123,7 @@ class Program
                     }
 
                     this.#data[operands[0]].type = 
-                    Math.max(this.#data[operands[1]].type, this.#data[operands[2]].type);
+                    Math.max(this.#data[operands[1]].type, this.#data[operands[2]].type, Object.typeof.number);
                     this.#data[operands[0]].data = 
                     this.#data[operands[1]].data + this.#data[operands[2]].data;
                 }
@@ -1026,27 +1217,25 @@ class Program
 
                     this.#data[operands[0]].type = Object.typeof.number;
                     this.#data[operands[0]].data = 
-                    Number(this.#data[operands[1]].data) / Number(this.#data[operands[2]].data);
+                    this.#data[operands[1]].data / this.#data[operands[2]].data;
                 }
                 break;
                 case "//":
                 {
-                    if (this.#data[operands[1]].type !== Object.typeof.bool &&
-                        this.#data[operands[2]].type !== Object.typeof.number ||
-                        this.#data[operands[1]].type !== Object.typeof.bool &&
+                    if (this.#data[operands[1]].type !== Object.typeof.number ||
                         this.#data[operands[2]].type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
-                    if (this.#data[operands[2]].data == 0)
+                    if (this.#data[operands[2]].data === 0)
                     {
                         throw new Error(`division by zero at (${position.row}, ${position.column})`);
                     }
 
                     this.#data[operands[0]].type = Object.typeof.number;
                     this.#data[operands[0]].data = 
-                    Math.trunc(Number(this.#data[operands[1]].data) / Number(this.#data[operands[2]].data));
+                    Math.trunc(this.#data[operands[1]].data / this.#data[operands[2]].data);
                 }
                 break;
                 case "%":
@@ -1057,14 +1246,14 @@ class Program
                     {
                         this.#evoke_error();
                     }
-                    if (this.#data[operands[2]].data == 0)
+                    if (this.#data[operands[2]].data === 0)
                     {
                         throw new Error(`division by zero at (${position.row}, ${position.column})`);
                     }
 
                     this.#data[operands[0]].type = Object.typeof.number;
                     this.#data[operands[0]].data = 
-                    Number(this.#data[operands[1]].data) % Number(this.#data[operands[2]].data);
+                    this.#data[operands[1]].data % this.#data[operands[2]].data;
                 }
                 break;
             }

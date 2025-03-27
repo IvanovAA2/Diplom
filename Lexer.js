@@ -187,8 +187,9 @@ class Lexer
                 if (this.#is_equal('\n')) 
                 {
                     ++this.#row;
-                    this.#column = 1;
+                    this.#column = 0;
                 }
+                ++this.#column;
                 ++this.#position;
                 continue;
             }
@@ -325,27 +326,72 @@ class Lexer
                 break;
 
                 case '+':
-                    tokens.push(new Token(this.verify_token("+"), "+", begin_row, begin_column));
-                break;
-
-                case '-':
-                    tokens.push(new Token(this.verify_token("-"), "-", begin_row, begin_column));
-                break;
-
-                case '*':
-                    tokens.push(new Token(this.verify_token("*"), "*", begin_row, begin_column));
-                break;
-
-                case '/':
-                    if (this.#next_is_equal('/')) 
+                    if (this.#next_is_equal('='))
                     {
-                        tokens.push(new Token(this.verify_token("//"), "//", begin_row, begin_column));
+                        tokens.push(new Token(this.verify_token("+="), "+=", begin_row, begin_column));
                         ++this.#position;
                         ++this.#column;
                     }
                     else
                     {
-                        tokens.push(new Token(this.verify_token("/"), "/", begin_row, begin_column));
+                        tokens.push(new Token(this.verify_token("+"), "+", begin_row, begin_column));
+                    }
+                break;
+
+                case '-':
+                    if (this.#next_is_equal('='))
+                        {
+                            tokens.push(new Token(this.verify_token("-="), "-=", begin_row, begin_column));
+                            ++this.#position;
+                            ++this.#column;
+                        }
+                        else
+                        {
+                            tokens.push(new Token(this.verify_token("-"), "-", begin_row, begin_column));
+                        }
+                break;
+
+                case '*':
+                    if (this.#next_is_equal('='))
+                        {
+                            tokens.push(new Token(this.verify_token("*="), "*=", begin_row, begin_column));
+                            ++this.#position;
+                            ++this.#column;
+                        }
+                        else
+                        {
+                            tokens.push(new Token(this.verify_token("*"), "*", begin_row, begin_column));
+                        }
+                break;
+
+                case '/':
+                    if (this.#next_is_equal('/')) 
+                    {
+                        ++this.#position;
+                        ++this.#column;
+                        if (this.#next_is_equal('='))
+                        {
+                            tokens.push(new Token(this.verify_token("//="), "//=", begin_row, begin_column));
+                            ++this.#position;
+                            ++this.#column;
+                        }
+                        else
+                        {
+                            tokens.push(new Token(this.verify_token("//"), "//", begin_row, begin_column));
+                        }
+                    }
+                    else
+                    {
+                        if (this.#next_is_equal('='))
+                        {
+                            tokens.push(new Token(this.verify_token("/="), "/=", begin_row, begin_column));
+                            ++this.#position;
+                            ++this.#column;
+                        }
+                        else
+                        {
+                            tokens.push(new Token(this.verify_token("/"), "/", begin_row, begin_column));
+                        }
                     }
                 break;
 

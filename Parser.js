@@ -116,6 +116,11 @@ class Parser
         $AssignOp :
         [
             ["=", "BoolOr"],
+            ["+=", "BoolOr"],
+            ["-=", "BoolOr"],
+            ["*=", "BoolOr"],
+            ["/=", "BoolOr"],
+            ["//=", "BoolOr"],
             [NOP],
         ],
 
