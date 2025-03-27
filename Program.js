@@ -420,36 +420,51 @@ class Program
                     case "isBool":
                     {
                         const destination   = this.#add_value();
+                        const object        = this.#visitor(node.children[2]);
                         const position      = node.children[0].children.position;
 
-                        this.#add_operation("isb", [destination, this.#visitor(node.children[2])], position);
+                        this.#add_operation("isb", [destination, object], position);
 
                         return destination;
                     }
                     case "isNumber":
                     {
                         const destination   = this.#add_value();
+                        const object        = this.#visitor(node.children[2]);
                         const position      = node.children[0].children.position;
 
-                        this.#add_operation("isn", [destination, this.#visitor(node.children[2])], position);
+                        this.#add_operation("isn", [destination, object], position);
 
                         return destination;
                     }
                     case "isString":
                     {
                         const destination   = this.#add_value();
+                        const object        = this.#visitor(node.children[2]);
                         const position      = node.children[0].children.position;
 
-                        this.#add_operation("iss", [destination, this.#visitor(node.children[2])], position);
+                        this.#add_operation("iss", [destination, object], position);
 
                         return destination;
                     }
                     case "isArray":
                     {
                         const destination   = this.#add_value();
+                        const object        = this.#visitor(node.children[2]);
                         const position      = node.children[0].children.position;
 
-                        this.#add_operation("isa", [destination, this.#visitor(node.children[2])], position);
+                        this.#add_operation("isa", [destination, object], position);
+
+                        return destination;
+                    }
+
+                    case "len":
+                    {
+                        const destination   = this.#add_value();
+                        const object        = this.#visitor(node.children[2]);
+                        const position      = node.children[0].children.position;
+
+                        this.#add_operation("len", [destination, object], position);
 
                         return destination;
                     }
@@ -992,6 +1007,23 @@ class Program
 
                     destination.type = Object.typeof.bool;
                     destination.data = value.type === Object.typeof.array;
+                }
+                break;
+
+                case "len":
+                {
+                    const destination   = this.#data[operands[0]];
+                    const object        = this.#data[operands[1]];
+
+                    if (object.type !== Object.typeof.string &&
+                        object.type !== Object.typeof.array
+                    )
+                    {
+                        this.#evoke_error();
+                    }
+
+                    destination.type = Object.typeof.number;
+                    destination.data = object.data.length;
                 }
                 break;
 

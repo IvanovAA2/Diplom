@@ -264,6 +264,7 @@ class Parser
             ["isNumber", "(", "Expression", ")"],
             ["isString", "(", "Expression", ")"],
             ["isArray", "(", "Expression", ")"],
+            ["len", "(", "Expression", ")"],
         ],
 
         Parameters :

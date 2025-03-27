@@ -66,6 +66,8 @@ class Lexer
 
         "print",
         "input",
+
+        "len",
         
         "if",
         "elif",
