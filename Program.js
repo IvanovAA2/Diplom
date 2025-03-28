@@ -922,7 +922,7 @@ class Program
                         this.#data[operands[1]].type === Object.typeof.array 
                     )
                     {
-                        this.#data[operands[0]].data.push(...this.#data[operands[1]].data);
+                        this.#data[operands[0]].data.push(...(this.#data[operands[1]].data));
 
                         break;
                     }

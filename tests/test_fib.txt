@@ -1,0 +1,8 @@
+var fib = [1, 1];
+
+for (var i = 2; i <= 20; i += 1)
+{
+    fib += [fib[len(fib) - 2] + fib[len(fib) - 1]];
+}
+
+print(fib);

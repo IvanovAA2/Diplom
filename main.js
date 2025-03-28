@@ -20,7 +20,7 @@ chooseInputFileButton.addEventListener('click', function()
     inputFile.click();
 });
 
-inputFile.addEventListener ('change', function() 
+inputFile.addEventListener('change', function() 
 {
     const selectedFile = inputFile.files[0];
 
@@ -28,7 +28,7 @@ inputFile.addEventListener ('change', function()
     {
         console.log(selectedFile.name);
 
-        inputFileName.textContent = selectedFile.name;
+        inputFileName.textContent = selectedFile.name + flip;
         load_input(selectedFile); 
     }
 });
