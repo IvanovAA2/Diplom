@@ -67,7 +67,7 @@ class Parser
             ["Declaration"],
             ["Scope"],
             ["Conditional"],
-            // ["Loop"],
+            ["Loop"],
         ],
         Scope :
         [
@@ -95,6 +95,44 @@ class Parser
         [
             ["else", "Scope"],
             [NOP],
+        ],
+
+        Loop : 
+        [
+            ["For"],
+            ["While"],
+        ],
+        While :
+        [
+            ["while", "(", "Expression", ")", "LoopScope"],
+        ],
+        For :
+        [
+            ["for", "(", "Expression", ";", "Expression", ";", "Expression", ")", "LoopScope"],
+        ],
+        LoopScope :
+        [
+            ["{", "LoopStatements", "}"],
+        ],
+        LoopStatements : 
+        [
+            ["LoopStatement", "LoopStatements"],
+            [NOP],
+        ],
+        LoopStatement :
+        [
+            ["Expressions"],
+            ["Declaration"],
+            ["LoopScope"],
+            ["Conditional"],
+            ["Loop"],
+
+            ["LoopControl", ";"],
+        ],
+        LoopControl :
+        [
+            ["break"],
+            ["continue"],
         ],
 
         Declaration :

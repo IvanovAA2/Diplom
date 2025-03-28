@@ -99,7 +99,9 @@ function get_input ()
 
 function run(input) 
 {
-    
+
+    console.log(sm);
+    console.log(performance.now() - start);
 
     console.log("Running:\n" + input);
     clearOutput();
@@ -116,6 +118,8 @@ function run(input)
 
     program = new Program(parse_tree);
     program.run();
+
+    console.log(program.overall_time);
 
     // try
     // {

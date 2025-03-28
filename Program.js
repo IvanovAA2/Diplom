@@ -82,6 +82,9 @@ class Program
     #current_scope      = 0;
     #return_jumps       = [];
 
+    #time_start         = null;
+    overall_time       = 0;
+
     constructor (parse_tree) 
     {
         this.#parse_tree = parse_tree;
@@ -111,6 +114,78 @@ class Program
                 this.#visitor(node.children[1]);
 
                 this.#leave_scope();
+            }
+            break;
+
+            case "While":
+            {
+                const begin             = this.#operations.length - 1;
+                const bool_expression   = this.#add_value();
+                const position          = node.children[0].children.position;
+                
+                this.#add_operation("bool", [bool_expression, this.#visitor(node.children[2])], position);
+                const operation = this.#operations.length;
+                this.#add_operation("if", [null, bool_expression], position);
+
+                const to_end = this.#visitor(node.children[4], [begin, [operation]])[1];
+
+                const end = this.#operations.length;
+                for (const op_pos of to_end)
+                {
+                    this.#operations[op_pos].operands[0] = end; 
+                }
+
+                this.#add_operation("jump", [begin], position);
+            }
+            break;
+
+            case "LoopScope":
+            {
+                if (node.children.length === 3)
+                {
+                    if (node.children[1].rule_name === "LoopStatement" ||
+                        node.children[1].rule_name === "LoopStatements" 
+                    )
+                    {
+                        this.#visitor(node.children[1], arg)
+                    }
+                    else
+                    {
+                        this.#visitor(node.children[1]);
+                    }
+                }
+                return arg;
+            }
+            case "LoopStatements":
+            {
+                if (node.children[0].rule_name === "LoopStatement" ||
+                    node.children[0].rule_name === "LoopScope"
+                )
+                {
+                    this.#visitor(node.children[0], arg)
+                    this.#visitor(node.children[1], arg);
+                }
+                else
+                {
+                    this.#visitor(node.children[0]);
+                    this.#visitor(node.children[1], arg);
+                }
+            }
+            break;
+            case "LoopStatement":
+            {
+                const position = node.children[0].children.position;
+
+                if (node.children[0].rule_name === "break")
+                {
+                    arg[1].push(this.#operations.length);
+
+                    this.#add_operation("jump", [null], position);
+                }
+                if (node.children[0].rule_name === "continue")
+                {
+                    this.#add_operation("jump", [arg[0]], position);
+                }
             }
             break;
 
@@ -362,13 +437,13 @@ class Program
                 
                 this.#add_operation("bool", [bool_expression, this.#visitor(node.children[2])], position);
                 const operation = this.#operations.length;
-                this.#add_operation("if", [bool_expression, null], position);
+                this.#add_operation("if", [null, bool_expression], position);
 
                 this.#visitor(node.children[4]);
 
                 const jump_to_end = this.#operations.length;
 
-                this.#operations[operation].operands[1] = this.#operations.length;
+                this.#operations[operation].operands[0] = this.#operations.length;
                 this.#add_operation("jump", [jump_to_end], position);
 
                 if (arg === true)
@@ -396,13 +471,13 @@ class Program
                 
                 this.#add_operation("bool", [bool_expression, this.#visitor(node.children[2])], position);
                 const operation = this.#operations.length;
-                this.#add_operation("if", [bool_expression, null], position);
+                this.#add_operation("if", [null, bool_expression], position);
 
                 this.#visitor(node.children[4]);
 
                 const jump_to_end = this.#operations.length;
 
-                this.#operations[operation].operands[1] = this.#operations.length;
+                this.#operations[operation].operands[0] = this.#operations.length;
                 this.#add_operation("jump", [jump_to_end], position);
 
                 if (arg[1] === false)
@@ -706,16 +781,22 @@ class Program
         }
     }
 
-    run () 
+    async run () 
     {
+        this.#time_start = performance.now();
+        
+        // DEBUG    
+        
         if (this.#current_operation === 0)
         {
             console.log(this.#operations);
             this.#print_data();
             console.log(this.#data);
-
+            
             this.#return_jumps = [];
         }
+        
+        // DEBUG
 
         var end = false;
         
@@ -723,41 +804,40 @@ class Program
         {
             const current_operation     = this.#operations[this.#current_operation];
             const operation_type        = current_operation.type;
-            const operands              = current_operation.operands;
+            const operands              = current_operation.operands.slice();
             const position              = current_operation.position;
 
-            // DEBUG
-
-            if (operation_type !== "create" &&
-                operation_type !== "jump" 
-            )
+            for (const index in operands)
             {
-                for (const index in operands)
+                if (this.#data[operands[index]]
+                    && this.#data[operands[index]].type === Object.typeof.ref
+                    && operation_type !== "create"
+                    && !(index == 0 && ["accs", "if", "jump"].includes(operation_type))
+                )
                 {
-                    if (!(operation_type === "accs" && index == 0) &&
-                        !(operation_type === "if" && index == 1) &&
-                        this.#data[operands[index]].type === Object.typeof.ref
-                    )
-                    {
-                        operands[index] = this.#data[operands[index]].data;
-                    }
+                    operands[index] = this.#data[operands[index]].data;
                 }
             }
 
-            console.log(operation_type, Array(8 - operation_type.length + 1).join(' '), operands);
+            // DEBUG
+
+            // console.log(operation_type, Array(8 - operation_type.length + 1).join(' '), operands);
+
+            // await new Promise(r => setTimeout(r, 1000)); // -----------------------PAUSE--------------------------------
 
             // DEBUG
+
 
             switch (operation_type)
             {
                 case "if":
                 {
-                    const bool_expression   = this.#data[operands[0]];
+                    const bool_expression   = this.#data[operands[1]];
                     const result            = bool_expression.data;
 
                     if (result === false)
                     {
-                        this.#current_operation = operands[1];
+                        this.#current_operation = operands[0];
                     }
                 }
                 break;
@@ -1624,5 +1704,8 @@ class Program
                 break;
             }
         }
+
+        this.overall_time += performance.now() - this.#time_start;
+        this.#time_start = null;
     }
 }
