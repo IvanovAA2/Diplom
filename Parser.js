@@ -108,7 +108,16 @@ class Parser
         ],
         For :
         [
-            ["for", "(", "Expression", ";", "Expression", ";", "Expression", ")", "LoopScope"],
+            ["for", "(", "ExpressionOrForDeclaration", ";", "Expression", ";", "Expression", ")", "LoopScope"],
+        ],
+        ExpressionOrForDeclaration :
+        [
+            ["Expression"],
+            ["ForDeclaration"],
+        ],
+        ForDeclaration :
+        [
+             ["var", "SingleDeclaration"],
         ],
         LoopScope :
         [

@@ -122,6 +122,8 @@ class Program
                 const begin             = this.#operations.length - 1;
                 const bool_expression   = this.#add_value();
                 const position          = node.children[0].children.position;
+
+                this.#branch_scope();
                 
                 this.#add_operation("bool", [bool_expression, this.#visitor(node.children[2])], position);
                 const operation = this.#operations.length;
@@ -136,6 +138,38 @@ class Program
                 }
 
                 this.#add_operation("jump", [begin], position);
+
+                this.#leave_scope();
+            }
+            break;
+            case "For":
+            {
+                const position = node.children[0].children.position;
+
+                this.#branch_scope();
+
+                this.#visitor(node.children[2]);
+
+                const begin             = this.#operations.length - 1;
+                const bool_expression   = this.#add_value();
+                
+                this.#add_operation("bool", [bool_expression, this.#visitor(node.children[4])], position);
+                const operation = this.#operations.length;
+                this.#add_operation("if", [null, bool_expression], position);
+
+                const to_end = this.#visitor(node.children[8], [begin, [operation]])[1];
+
+                this.#visitor(node.children[6]);
+
+                const end = this.#operations.length;
+                for (const op_pos of to_end)
+                {
+                    this.#operations[op_pos].operands[0] = end; 
+                }
+
+                this.#add_operation("jump", [begin], position);
+
+                this.#leave_scope();
             }
             break;
 
@@ -189,6 +223,21 @@ class Program
             }
             break;
 
+            case "ForDeclaration":
+            {
+                if (node.children[1].rule_name === "id") 
+                {
+                    const variable_name = node.children[1].children.string;
+                    const position      = node.children[1].children.position;
+
+                    this.#create_variable(variable_name, this.#create_value(Object.typeof.null, null), position);
+                }
+                else 
+                {
+                    this.#visitor(node.children[1]);
+                }
+            }
+            break;
             case "Declaration" :
             case "$Declaration" : // "," "SingleDeclaration" "$Declaration"
             {
