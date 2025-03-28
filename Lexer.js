@@ -194,7 +194,7 @@ class Lexer
             const begin_row     = this.#row;
             const begin_column  = this.#column;
             
-            if(this.#is_whitespace()) 
+            if (this.#is_whitespace()) 
             {
                 if (this.#is_equal('\n')) 
                 {
@@ -204,6 +204,21 @@ class Lexer
                 ++this.#column;
                 ++this.#position;
                 continue;
+            }
+
+            if (this.#is_equal('#'))
+            {
+                ++this.#position;
+                ++this.#column;
+
+                while (this.#is_equal('\n') === false) 
+                {
+                    ++this.#position;
+                    ++this.#column;
+                }
+
+                ++this.#row;
+                this.#column = 0;
             }
 
             if (this.#is_letter()) 

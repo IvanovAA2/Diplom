@@ -66,12 +66,35 @@ class Parser
             ["Expressions"],
             ["Declaration"],
             ["Scope"],
-            // ["Conditional"],
+            ["Conditional"],
             // ["Loop"],
         ],
         Scope :
         [
             ["{", "Statements", "}"],
+        ],
+
+        Conditional :
+        [
+            ["IfBlock", "$ElifBlock"],
+        ],
+        $ElifBlock :
+        [
+            ["ElifBlock", "$ElifBlock"],
+            ["ElseBlock"],
+        ],
+        IfBlock :
+        [
+            ["if", "(", "Expression", ")", "Scope"],
+        ],
+        ElifBlock :
+        [
+            ["elif", "(", "Expression", ")", "Scope"],
+        ],
+        ElseBlock :
+        [
+            ["else", "Scope"],
+            [NOP],
         ],
 
         Declaration :
@@ -257,7 +280,7 @@ class Parser
         DefaultFunctionCall :
         [
             ["print", "(", "Parameters", ")"],
-            ["input", "(", "Parameters", ")"],
+            ["input", "(", "Expression", ")"],
             ["get", "(", "Expression", ",", "Expression", ")"],
             ["set", "(", "Expression", ",", "Expression", ",", "Expression", ")"],
             ["isBool", "(", "Expression", ")"],
