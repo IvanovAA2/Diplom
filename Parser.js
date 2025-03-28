@@ -203,6 +203,8 @@ class Parser
         [
             ["==", "CompOp", "$EqualOp"],
             ["!=", "CompOp", "$EqualOp"],
+            ["===", "CompOp", "$EqualOp"],
+            ["!==", "CompOp", "$EqualOp"],
             [NOP],
         ],
 

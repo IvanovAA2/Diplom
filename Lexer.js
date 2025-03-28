@@ -111,6 +111,8 @@ class Lexer
 
         "==",
         "!=",
+        "===",
+        "!==",
 
         "<",
         ">",
@@ -437,9 +439,18 @@ class Lexer
                 case '=':
                     if (this.#next_is_equal('=')) 
                     {
-                        tokens.push(new Token(this.verify_token("=="), "==", begin_row, begin_column));
                         ++this.#position;
                         ++this.#column;
+                        if (this.#next_is_equal('=')) 
+                        {
+                            tokens.push(new Token(this.verify_token("==="), "===", begin_row, begin_column));
+                            ++this.#position;
+                            ++this.#column;
+                        }
+                        else 
+                        {
+                            tokens.push(new Token(this.verify_token("=="), "==", begin_row, begin_column));
+                        }
                     }
                     else 
                     {
@@ -450,9 +461,18 @@ class Lexer
                 case '!':
                     if (this.#next_is_equal('=')) 
                     {
-                        tokens.push(new Token(this.verify_token("!="), "!=", begin_row, begin_column));
                         ++this.#position;
                         ++this.#column;
+                        if (this.#next_is_equal('=')) 
+                        {
+                            tokens.push(new Token(this.verify_token("!=="), "===", begin_row, begin_column));
+                            ++this.#position;
+                            ++this.#column;
+                        }
+                        else 
+                        {
+                            tokens.push(new Token(this.verify_token("!="), "==", begin_row, begin_column));
+                        }
                     }
                     else 
                     {

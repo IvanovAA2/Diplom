@@ -1334,16 +1334,10 @@ class Program
 
                         break;
                     }
-                    if (this.#data[operands[1]].type === Object.typeof.array ||
-                        this.#data[operands[2]].type === Object.typeof.array
-                    )
-                    {
-                        this.#evoke_error();
-                    }
 
                     this.#data[operands[0]].type = Object.typeof.bool;
                     this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data === this.#data[operands[2]].data;
+                    this.#data[operands[1]].data == this.#data[operands[2]].data;
                 }
                 break;
                 case "!=":
@@ -1358,11 +1352,41 @@ class Program
     
                             break;
                         }
-                        if (this.#data[operands[1]].type === Object.typeof.array ||
-                            this.#data[operands[2]].type === Object.typeof.array
+    
+                        this.#data[operands[0]].type = Object.typeof.bool;
+                        this.#data[operands[0]].data = 
+                        this.#data[operands[1]].data != this.#data[operands[2]].data;
+                    }
+                break;
+                case "===":
+                {
+                    if (this.#data[operands[1]].type === Object.typeof.null ||
+                        this.#data[operands[2]].type === Object.typeof.null 
+                    )
+                    {
+                        this.#data[operands[0]].type = Object.typeof.bool;
+                        this.#data[operands[0]].data = 
+                        this.#data[operands[1]].type === this.#data[operands[2]].type;
+
+                        break;
+                    }
+
+                    this.#data[operands[0]].type = Object.typeof.bool;
+                    this.#data[operands[0]].data = 
+                    this.#data[operands[1]].data === this.#data[operands[2]].data;
+                }
+                break;
+                case "!==":
+                    {
+                        if (this.#data[operands[1]].type === Object.typeof.null ||
+                            this.#data[operands[2]].type === Object.typeof.null 
                         )
                         {
-                            this.#evoke_error();
+                            this.#data[operands[0]].type = Object.typeof.bool;
+                            this.#data[operands[0]].data = 
+                            this.#data[operands[1]].type !== this.#data[operands[2]].type;
+    
+                            break;
                         }
     
                         this.#data[operands[0]].type = Object.typeof.bool;
