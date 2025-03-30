@@ -28,7 +28,7 @@ inputFile.addEventListener('change', function()
     {
         console.log(selectedFile.name);
 
-        inputFileName.textContent = selectedFile.name + flip;
+        inputFileName.textContent = selectedFile.name;
         load_input(selectedFile); 
     }
 });
@@ -130,7 +130,7 @@ function run(input)
     program = new Program(parse_tree);
     program.run();
 
-    console.log(program.overall_time);
+    console.log(`time: ${Math.round(program.overall_time * 1000) / 1000}ms`);
 
     // try
     // {

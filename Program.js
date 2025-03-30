@@ -1,15 +1,15 @@
 
 class Object
 {
-    symbol_type;
+    // symbol_type;
     type;
     data; 
 
     static typeof =
     {
-        variable    : 0,
-        function    : 1,
-        value       : 2,
+        // variable    : 0,
+        // function    : 1,
+        // value       : 2,
 
         null    : 0,
         bool    : 1,
@@ -17,7 +17,7 @@ class Object
         string  : 3,
         array   : 4,
 
-        ref     : 5,
+        arac    : 5,
     }
 
     static data_name = new Map
@@ -27,21 +27,20 @@ class Object
         [2, "number"],
         [3, "string"],
         [4, "array"],
-        [5, "ref"],
+        [5, "arac"],
     ])
 
-    static symbol_name = new Map
-    ([
-        [0, "var-l"],
-        [1, "fun-n"],
-        [2, "value"],
-    ])
+    // static symbol_name = new Map
+    // ([
+    //     [0, "var-l"],
+    //     [1, "fun-n"],
+    //     [2, "value"],
+    // ])
 
-    constructor (symbol_type, type, data)
+    constructor (type, data)
     {
-        this.symbol_type    = symbol_type;
-        this.type           = type;
-        this.data           = data;
+        this.type   = type;
+        this.data   = data;
     }
 }
 
@@ -120,14 +119,14 @@ class Program
             case "While":
             {
                 const begin             = this.#operations.length - 1;
-                const bool_expression   = this.#add_value();
+                const bool_expression   = this.#create_value(Object.typeof.null, null);
                 const position          = node.children[0].children.position;
 
                 this.#branch_scope();
                 
-                this.#add_operation("bool", [bool_expression, this.#visitor(node.children[2])], position);
+                this.#create_operation("bool", [bool_expression, this.#visitor(node.children[2])], position);
                 const operation = this.#operations.length;
-                this.#add_operation("if", [null, bool_expression], position);
+                this.#create_operation("if", [null, bool_expression], position);
 
                 const to_end = this.#visitor(node.children[4], [begin, [operation]])[1];
 
@@ -137,7 +136,7 @@ class Program
                     this.#operations[op_pos].operands[0] = end; 
                 }
 
-                this.#add_operation("jump", [begin], position);
+                this.#create_operation("jump", [begin], position);
 
                 this.#leave_scope();
             }
@@ -151,11 +150,11 @@ class Program
                 this.#visitor(node.children[2]);
 
                 const begin             = this.#operations.length - 1;
-                const bool_expression   = this.#add_value();
+                const bool_expression   = this.#create_value(Object.typeof.null, null);
                 
-                this.#add_operation("bool", [bool_expression, this.#visitor(node.children[4])], position);
+                this.#create_operation("bool", [bool_expression, this.#visitor(node.children[4])], position);
                 const operation = this.#operations.length;
-                this.#add_operation("if", [null, bool_expression], position);
+                this.#create_operation("if", [null, bool_expression], position);
 
                 const to_end = this.#visitor(node.children[8], [begin, [operation]])[1];
 
@@ -167,7 +166,7 @@ class Program
                     this.#operations[op_pos].operands[0] = end; 
                 }
 
-                this.#add_operation("jump", [begin], position);
+                this.#create_operation("jump", [begin], position);
 
                 this.#leave_scope();
             }
@@ -214,11 +213,11 @@ class Program
                 {
                     arg[1].push(this.#operations.length);
 
-                    this.#add_operation("jump", [null], position);
+                    this.#create_operation("jump", [null], position);
                 }
                 if (node.children[0].rule_name === "continue")
                 {
-                    this.#add_operation("jump", [arg[0]], position);
+                    this.#create_operation("jump", [arg[0]], position);
                 }
             }
             break;
@@ -290,7 +289,7 @@ class Program
                 const operation_type    = node.children[0].children.type;
                 const position          = node.children[0].children.position;
 
-                this.#add_operation(operation_type, [arg, this.#visitor(node.children[1])], position);
+                this.#create_operation(operation_type, [arg, this.#visitor(node.children[1])], position);
                         
                 return arg;
             }
@@ -303,10 +302,10 @@ class Program
             case "$MulOp":
             {
                 const operation_type    = node.children[0].children.type;
-                const destination       = this.#add_value();
+                const destination       = this.#create_value(Object.typeof.null, null);
                 const position          = node.children[0].children.position;
                 
-                this.#add_operation(operation_type, [destination, arg, this.#visitor(node.children[1])], position);
+                this.#create_operation(operation_type, [destination, arg, this.#visitor(node.children[1])], position);
 
                 return destination;
             }
@@ -328,27 +327,23 @@ class Program
             {
                 if (node.children[2].rule_name === "]")
                 {
-                    const destination   = this.#add_value(Object.typeof.ref, null);
-                    const array         = arg;
-                    const index         = this.#visitor(node.children[1]);
-                    const position      = node.children[0].children.position;
+                    const array = arg;
+                    const index = this.#visitor(node.children[1]);
 
-                    this.#add_operation("accs", [destination, array, index], position);
+                    const destination = this.#create_value(Object.typeof.arac, [array, [index]]);
 
                     if (node.children.length === 4) // "[" "Expression" "]" "Accessing"
                     {
-                        return this.#visitor(node.children[3], destination);
+                        this.#visitor(node.children[3], destination);
                     }
-                    if (node.children.length === 3) // "[" "Expression" "]"
-                    {
-                        return destination;
-                    }
+
+                    return destination;
                 }
                 else
                 {
-                    const destination = this.#add_value();
+                    const destination = this.#create_value(Object.typeof.null, null);
 
-                    this.#add_operation(
+                    this.#create_operation(
                     "slice", 
                     [
                         destination, 
@@ -368,8 +363,47 @@ class Program
                         return destination;
                     }
                 }
-                throw new Error("Accessing ill-formed");
             }
+            break;
+            case "$Accessing":
+            {
+                if (node.children[2].rule_name === "]")
+                {
+                    const index = this.#visitor(node.children[1]);
+
+                    this.#data[arg].data[1].push(index);
+
+                    if (node.children.length === 4) // "[" "Expression" "]" "Accessing"
+                    {
+                        this.#visitor(node.children[3], arg);
+                    }
+                }
+                else
+                {
+                    const destination = this.#create_value(Object.typeof.null, null);
+
+                    this.#create_operation(
+                    "slice", 
+                    [
+                        destination, 
+                        arg, 
+                        this.#visitor(node.children[1]), 
+                        this.#visitor(node.children[2])
+                    ], 
+                    node.children[0].children.position
+                    );
+
+                    if (node.children.length === 5) // "[" "Expression", "Slice" "]" "Accessing"
+                    {
+                        return this.#visitor(node.children[4], destination);
+                    }
+                    if (node.children.length === 4) // "[" "Expression", "Slice" "]"
+                    {
+                        return destination;
+                    }
+                }
+            }
+            break;
             case "Slice":
             {
                 return this.#visitor(node.children[1]);
@@ -377,41 +411,51 @@ class Program
 
             case "null":
             {
-                return this.#create_value(Object.typeof.null, null, node.children.position);
+                return this.#create_value(Object.typeof.null, null);
             }
             case "true":
             {
-                return this.#create_value(Object.typeof.bool, true, node.children.position);
+                return this.#create_value(Object.typeof.bool, true);
             }
             case "false":
             {
-                return this.#create_value(Object.typeof.bool, false, node.children.position);
+                return this.#create_value(Object.typeof.bool, false);
             }
             case "numberToken":
             {
-                return this.#create_value(Object.typeof.number, Number(node.children.string), node.children.position);
+                return this.#create_value(Object.typeof.number, Number(node.children.string));
             }
             case "stringToken":
             {
-                return this.#create_value(Object.typeof.string, node.children.string, node.children.position);
+                return this.#create_value(Object.typeof.string, node.children.string);
             }
             case "Array":
             {
                 if (node.children.length === 2) // "[" "]"
                 {
-                    return this.#create_value(Object.typeof.array, [], node.children.position);
+                    return this.#create_value(Object.typeof.array, []);
                 }
                 // "[" "$Array" "]"
                 if (node.children[1].rule_name === "$Array")
                 {
-                    return this.#create_value(Object.typeof.array, this.#visitor(node.children[1]), node.children.position);
+                    const reference = this.#create_value(Object.typeof.array, this.#visitor(node.children[1]));
+                    const array     = this.#create_value(Object.typeof.array, []);
+
+                    this.#create_operation("build", [array, reference], null);
+
+                    return array;
                 }
 
-                return this.#create_value(Object.typeof.array, [this.#make_variable(this.#visitor(node.children[1]))], node.children.position);
+                const reference = this.#create_value(Object.typeof.array, [this.#visitor(node.children[1])]);
+                const array     = this.#create_value(Object.typeof.array, []);
+
+                this.#create_operation("build", [array, reference], null);
+
+                return array;
             }
             case "$Array":
             {
-                var array = [this.#make_variable(this.#visitor(node.children[0]))];
+                var array = [this.#visitor(node.children[0])];
 
                 if (node.children.length === 2)
                 {
@@ -422,7 +466,7 @@ class Program
             }
             case "$$Array":
             {
-                arg.push(this.#make_variable(this.#visitor(node.children[1])));
+                arg.push(this.#visitor(node.children[1]));
 
                 if (node.children.length === 3)
                 {
@@ -433,28 +477,28 @@ class Program
 
             case "Boolean":
             {
-                const destination       = this.#add_value();
-                const position          = node.children[0].children.position;
+                const destination   = this.#create_value(Object.typeof.null, null);
+                const position      = node.children[0].children.position;
                 
-                this.#add_operation("bool", [destination, this.#visitor(node.children[2])], position);
+                this.#create_operation("bool", [destination, this.#visitor(node.children[2])], position);
 
                 return destination;
             }
             case "Number":
             {
-                const destination       = this.#add_value();
+                const destination       = this.#create_value(Object.typeof.null, null);
                 const position          = node.children[0].children.position;
                 
-                this.#add_operation("num", [destination, this.#visitor(node.children[2])], position);
+                this.#create_operation("num", [destination, this.#visitor(node.children[2])], position);
 
                 return destination;
             }
             case "String":
             {
-                const destination       = this.#add_value();
+                const destination       = this.#create_value(Object.typeof.null, null);
                 const position          = node.children[0].children.position;
                 
-                this.#add_operation("str", [destination, this.#visitor(node.children[2])], position);
+                this.#create_operation("str", [destination, this.#visitor(node.children[2])], position);
 
                 return destination;
             }
@@ -481,19 +525,19 @@ class Program
             break;
             case "IfBlock":
             {
-                const bool_expression   = this.#add_value();
+                const bool_expression   = this.#create_value(Object.typeof.null, null);
                 const position          = node.children[0].children.position;
                 
-                this.#add_operation("bool", [bool_expression, this.#visitor(node.children[2])], position);
+                this.#create_operation("bool", [bool_expression, this.#visitor(node.children[2])], position);
                 const operation = this.#operations.length;
-                this.#add_operation("if", [null, bool_expression], position);
+                this.#create_operation("if", [null, bool_expression], position);
 
                 this.#visitor(node.children[4]);
 
                 const jump_to_end = this.#operations.length;
 
                 this.#operations[operation].operands[0] = this.#operations.length;
-                this.#add_operation("jump", [jump_to_end], position);
+                this.#create_operation("jump", [jump_to_end], position);
 
                 if (arg === true)
                 {
@@ -515,19 +559,19 @@ class Program
             break;
             case "ElifBlock":
             {
-                const bool_expression   = this.#add_value();
+                const bool_expression   = this.#create_value(Object.typeof.null, null);
                 const position          = node.children[0].children.position;
                 
-                this.#add_operation("bool", [bool_expression, this.#visitor(node.children[2])], position);
+                this.#create_operation("bool", [bool_expression, this.#visitor(node.children[2])], position);
                 const operation = this.#operations.length;
-                this.#add_operation("if", [null, bool_expression], position);
+                this.#create_operation("if", [null, bool_expression], position);
 
                 this.#visitor(node.children[4]);
 
                 const jump_to_end = this.#operations.length;
 
                 this.#operations[operation].operands[0] = this.#operations.length;
-                this.#add_operation("jump", [jump_to_end], position);
+                this.#create_operation("jump", [jump_to_end], position);
 
                 if (arg[1] === false)
                 {
@@ -556,7 +600,7 @@ class Program
 
             case "FunctionCall":
             {
-                const destination = this.#add_value();
+                const destination = this.#create_value(Object.typeof.null, null);
                 // TODO
                 return destination;
             }
@@ -582,14 +626,14 @@ class Program
                             }
                         }
 
-                        this.#add_operation("print", parameters, position);
+                        this.#create_operation("print", parameters, position);
 
-                        return this.#add_value();
+                        return this.#create_value(Object.typeof.null, null);
                     }
                     case "input":
                     {
                         const position      = node.children[0].children.position;
-                        const destination   = this.#add_value();
+                        const destination   = this.#create_value(Object.typeof.null, null);
                         var text            = -1;
 
                         if (node.children.length === 4) 
@@ -597,85 +641,60 @@ class Program
                             text = this.#visitor(node.children[2]);
                         }
 
-                        this.#add_operation("await", [text], position);
-                        this.#add_operation("input", [destination], position);
-
-                        return destination;
-                    }
-
-                    case "get":
-                    {
-                        const destination   = this.#add_value();
-                        const array         = this.#visitor(node.children[2]);
-                        const index         = this.#visitor(node.children[4]);
-                        const position      = node.children[0].children.position;
-
-                        this.#add_operation("get", [destination, array, index], position);
-
-                        return destination;
-                    }
-
-                    case "set":
-                    {
-                        const destination   = this.#add_value();
-                        const array         = this.#visitor(node.children[2]);
-                        const index         = this.#visitor(node.children[4]);
-                        const from          = this.#visitor(node.children[6]);
-                        const position      = node.children[0].children.position;
-
-                        this.#add_operation("set", [destination, array, index, from], position);
+                        this.#create_operation("await", [text], position);
+                        this.#create_operation("input", [destination], position);
 
                         return destination;
                     }
 
                     case "isBool":
                     {
-                        const destination   = this.#add_value();
+                        const destination   = this.#create_value(Object.typeof.null, null);
                         const object        = this.#visitor(node.children[2]);
                         const position      = node.children[0].children.position;
 
-                        this.#add_operation("isb", [destination, object], position);
+                        this.#create_operation("isb", [destination, object], position);
 
                         return destination;
                     }
                     case "isNumber":
                     {
-                        const destination   = this.#add_value();
+                        const destination   = this.#create_value(Object.typeof.null, null);
                         const object        = this.#visitor(node.children[2]);
                         const position      = node.children[0].children.position;
 
-                        this.#add_operation("isn", [destination, object], position);
+                        this.#create_operation("isn", [destination, object], position);
 
                         return destination;
                     }
                     case "isString":
                     {
-                        const destination   = this.#add_value();
+                        const destination   = this.#create_value(Object.typeof.null, null);
                         const object        = this.#visitor(node.children[2]);
                         const position      = node.children[0].children.position;
 
-                        this.#add_operation("iss", [destination, object], position);
+                        this.#create_operation("iss", [destination, object], position);
 
                         return destination;
                     }
                     case "isArray":
                     {
-                        const destination   = this.#add_value();
+                        const destination   = this.#create_value(Object.typeof.null, null);
                         const object        = this.#visitor(node.children[2]);
                         const position      = node.children[0].children.position;
 
-                        this.#add_operation("isa", [destination, object], position);
+                        this.#create_operation("isa", [destination, object], position);
 
                         return destination;
                     }
 
                     case "len":
                     {
-                        const destination   = this.#add_value();
+                        const destination   = this.#create_value(Object.typeof.null, null);
                         const object        = this.#visitor(node.children[2]);
                         const position      = node.children[0].children.position;
 
-                        this.#add_operation("len", [destination, object], position);
+                        this.#create_operation("len", [destination, object], position);
 
                         return destination;
                     }
@@ -715,33 +734,16 @@ class Program
         }
     }
 
-    #create_value (type, data, position)
+    #create_value (type, data)
     {
         const destination = this.#data.length;
 
-        this.#data.push(new Object(Object.typeof.value));
-        this.#add_operation("create", [destination, type, data], position);
+        this.#data.push(new Object(type, data));
 
         return destination;
     }
 
-    #add_value (type = Object.typeof.null, data = null)
-    {
-        const destination = this.#data.length;
-
-        this.#data.push(new Object(Object.typeof.value, type, data));
-
-        return destination;
-    }
-
-    #make_variable (position)
-    {
-        this.#data[position].symbol_type = Object.typeof.variable;
-
-        return position;
-    }
-
-    #add_operation (type, operands, position)
+    #create_operation (type, operands, position)
     {
         this.#operations.push(new Operation(type, operands, position));
     }
@@ -753,10 +755,8 @@ class Program
             throw new Error(`multiple initializations of "${name}" at (${position.row}, ${position.column})`);
         }
 
-        const variable_position = this.#data.length;
-
-        this.#data.push(new Object(Object.typeof.variable, Object.typeof.null, null));
-        this.#add_operation("=", [variable_position, from], position);
+        const variable_position = this.#create_value(null, null);
+        this.#create_operation("=", [variable_position, from], position);
 
         this.#scope_tree[this.#current_scope].symbol_table.set(name, variable_position);
     }
@@ -791,6 +791,75 @@ class Program
         this.#current_scope = this.#scope_tree[this.#current_scope].parent;
     }
 
+    #get (index)
+    {
+        if (this.#data[index].type === Object.typeof.arac)
+        {
+            return this.#get_subscript(
+                this.#data[this.#data[index].data[0]], 
+                structuredClone(this.#data[index].data[1])
+            );
+        }
+
+        return structuredClone(this.#data[index]);
+    }
+
+    #get_subscript (array, subscripts)
+    {
+        if (subscripts.length === 0)
+        {
+            return structuredClone(array);
+        }
+
+        const index = this.#get(subscripts.pop());
+
+        if (array.type !== Object.typeof.array ||
+            index.type !== Object.typeof.number
+        )
+        {
+            this.#evoke_error();
+        }
+        
+        return this.#get_subscript(array.data[index.data], subscripts);
+    }
+
+    #set (index, type, data)
+    {
+        if (this.#data[index].type === Object.typeof.arac)
+        {
+            this.#set_subscript(
+                this.#data[this.#data[index].data[0]], 
+                structuredClone(this.#data[index].data[1]),
+                type, data
+            );
+        }
+
+        this.#data[index].type = type;
+        this.#data[index].data = data;
+    }
+
+    #set_subscript (array, subscripts, type, data)
+    {
+        if (subscripts.length === 0)
+        {
+            array.type = type;
+            array.data = data;
+        }
+        else 
+        {
+            const index = this.#get(subscripts.pop());
+
+            if (array.type !== Object.typeof.array ||
+                index.type !== Object.typeof.number
+            )
+            {
+                this.#evoke_error();
+            }
+            
+            this.#get_subscript(array.data[index.data], subscripts, type, data);
+        }
+    }
+
     #evoke_error (from = 1, to = 1e9)
     {
         const current_operation = this.#operations[this.#current_operation];
@@ -809,7 +878,7 @@ class Program
             {
                 message += Object.data_name.get(this.#data[operands[index]].type);
             }
-            if (index == to)
+            if (index >= to)
             {
                 break;
             }
@@ -819,14 +888,58 @@ class Program
         throw new Error(message);
     }
 
-    #print_data(comment = "")
+    #print_data (comment = "")
     {
         console.log(comment);
         console.log(Array(15).join('-'));
 
         for(const x in this.#data)
         {
-            console.log(`${x}: ${Object.symbol_name.get(this.#data[x].symbol_type)} \t${Object.data_name.get(this.#data[x].type)} \t${this.#data[x].data}`);
+            console.log(`${x}: \t${Object.data_name.get(this.#data[x].type)}`);
+            console.log(this.#data[x].data);
+        }
+    }
+
+    #print (object)
+    {
+        switch (object.type)
+        {
+            case Object.typeof.null:
+            {
+                addOutput("null");
+            }
+            break;
+
+            case Object.typeof.bool:
+            case Object.typeof.number:
+            case Object.typeof.string:
+            {
+                addOutput(String(object.data));   
+            }
+            break;
+
+            case Object.typeof.array:
+            {
+                addOutput("[");
+
+                for (const index in object.data)
+                {
+                    const element = object.data[index];
+        
+                    if (index > 0)
+                    {
+                        addOutput(", ");
+                    }
+        
+                    this.#print(element);
+                }
+        
+                addOutput("]");
+            }
+            break;
+
+            default:
+                console.log(`unknown type: ${object.type}, object ${object}`);
         }
     }
 
@@ -856,35 +969,37 @@ class Program
             const operands              = current_operation.operands.slice();
             const position              = current_operation.position;
 
-            for (const index in operands)
-            {
-                if (this.#data[operands[index]]
-                    && this.#data[operands[index]].type === Object.typeof.ref
-                    && operation_type !== "create"
-                    && !(index == 0 && ["accs", "if", "jump"].includes(operation_type))
-                )
-                {
-                    operands[index] = this.#data[operands[index]].data;
-                }
-            }
-
             // DEBUG
 
-            // console.log(operation_type, Array(8 - operation_type.length + 1).join(' '), operands);
+            console.log(operation_type, Array(8 - operation_type.length + 1).join(' '), operands);
 
             // await new Promise(r => setTimeout(r, 1000)); // -----------------------PAUSE--------------------------------
 
             // DEBUG
-
+            
+            this.#print_data("-------------------------------------------------------------");
 
             switch (operation_type)
             {
+                case "build":
+                {
+                    const array     = this.#data[operands[0]];
+                    const reference = this.#data[operands[1]];
+
+                    array.data = [];
+
+                    for (const index of reference.data)
+                    {
+                        array.data.push(structuredClone(this.#data[index]));
+                    }
+                }
+                break;
+
                 case "if":
                 {
-                    const bool_expression   = this.#data[operands[1]];
-                    const result            = bool_expression.data;
+                    const bool_expression = this.#get(operands[1]);
 
-                    if (result === false)
+                    if (bool_expression.data === false)
                     {
                         this.#current_operation = operands[0];
                     }
@@ -896,90 +1011,79 @@ class Program
                 }
                 break;
 
-                case "create":
+                case "=":   
                 {
-                    this.#data[operands[0]].type = operands[1];
-                    this.#data[operands[0]].data = structuredClone(operands[2]);
-                }
-                break;
-                case "=":
-                {
-                    if (this.#data[operands[0]].symbol_type !== Object.typeof.variable)
-                    {
-                        throw new Error(`can't assign to not variable at (${position.row}, ${position.column})`);
-                    }
-                    this.#data[operands[0]].type = this.#data[operands[1]].type;
-                    this.#data[operands[0]].data = this.#data[operands[1]].data;
+                    const op = this.#get(operands[1]);
+
+                    this.#set(operands[0], op.type, op.data);
                 }
                 break;
                 case "+=":
                 {
-                    if (this.#data[operands[0]].symbol_type !== Object.typeof.variable)
-                    {
-                        throw new Error(`can't assign to not variable at (${position.row}, ${position.column})`);
-                    }
-                    if (this.#data[operands[0]].type === Object.typeof.array &&
-                        this.#data[operands[1]].type === Object.typeof.array 
+                    const op0 = this.#get(operands[0]);
+                    const op1 = this.#get(operands[1]);
+
+                    if (op0.type === Object.typeof.array &&
+                        op1.type === Object.typeof.array 
                     )
                     {
-                        this.#data[operands[0]].data.push(...(this.#data[operands[1]].data));
+                        var result = op0.data;
+                        result.push(...op1.data);
+                        
+                        this.#set(operands[0], Object.typeof.array, result);
 
                         break;
                     }
-                    if (this.#data[operands[0]].type === Object.typeof.null ||
-                        this.#data[operands[1]].type === Object.typeof.null ||
-                        this.#data[operands[0]].type === Object.typeof.array ||
-                        this.#data[operands[1]].type === Object.typeof.array 
+                    if (op0.type === Object.typeof.null ||
+                        op1.type === Object.typeof.null ||
+                        op0.type === Object.typeof.array ||
+                        op1.type === Object.typeof.array 
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    this.#data[operands[0]].type = 
-                    Math.max(this.#data[operands[0]].type, this.#data[operands[1]].type, Object.typeof.number);
-                    this.#data[operands[0]].data += this.#data[operands[1]].data;
+                    this.#set(operands[0], Math.max(op0.type, op1.type), op0.data + op1.data);
                 }
                 break;
                 case "-=":
                 {
-                    if (this.#data[operands[0]].symbol_type !== Object.typeof.variable)
-                    {
-                        throw new Error(`can't assign to not variable at (${position.row}, ${position.column})`);
-                    }
-                    if (this.#data[operands[0]].type !== Object.typeof.bool &&
-                        this.#data[operands[0]].type !== Object.typeof.number ||
-                        this.#data[operands[1]].type !== Object.typeof.bool &&
-                        this.#data[operands[1]].type !== Object.typeof.number
+                    const op0 = this.#get(operands[0]);
+                    const op1 = this.#get(operands[1]);
+
+                    if (op0.type !== Object.typeof.bool &&
+                        op0.type !== Object.typeof.number ||
+                        op1.type !== Object.typeof.bool &&
+                        op1.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.number;
-                    this.#data[operands[0]].data -= this.#data[operands[1]].data;
+                    this.#set(operands[0], Object.typeof.number, op0.data - op1.data);
                 }
                 break;
                 case "*=":
                 {
-                    if (this.#data[operands[0]].symbol_type !== Object.typeof.variable)
-                    {
-                        throw new Error(`can't assign to not variable at (${position.row}, ${position.column})`);
-                    }
-                    if (this.#data[operands[1]].type !== Object.typeof.number &&
-                        this.#data[operands[1]].type !== Object.typeof.bool ||
-                        this.#data[operands[0]].type === Object.typeof.null
+                    const op0 = this.#get(operands[0]);
+                    const op1 = this.#get(operands[1]);
+
+                    if (op1.type !== Object.typeof.number &&
+                        op1.type !== Object.typeof.bool ||
+                        op0.type === Object.typeof.null
                     )
                     {
                         this.#evoke_error();
                     }
-                    if (this.#data[operands[0]].type === Object.typeof.array)
+
+                    if (op0.type === Object.typeof.array)
                     {
-                        var number = this.#data[operands[1]].data;
-                        if (this.#data[operands[1]].type === Object.typeof.number) 
+                        var number = op1.data;
+                        if (op1.type === Object.typeof.number) 
                         {
                             number = Math.trunc(number);
                         }
-                        else
+                        if (op1.type === Object.typeof.bool) 
                         {
                             number = Number(number);
                         }
@@ -987,21 +1091,21 @@ class Program
                         var array = [];
                         for (var count = 0; count < number; ++count)
                         {
-                            array.push(...this.#data[operands[0]].data);
+                            array.push(...op0.data);
                         }
 
-                        this.#data[operands[0]].data = array;
+                        this.#set(operands[0], Object.typeof.array, array);
 
                         break;
                     }
-                    if (this.#data[operands[0]].type === Object.typeof.string)
+                    if (op0.type === Object.typeof.string)
                     {
-                        var number = this.#data[operands[1]].data;
-                        if (this.#data[operands[1]].type === Object.typeof.number) 
+                        var number = op1.data;
+                        if (op1.type === Object.typeof.number) 
                         {
                             number = Math.trunc(number);
                         }
-                        else
+                        if (op1.type === Object.typeof.bool)
                         {
                             number = Number(number);
                         }
@@ -1009,78 +1113,72 @@ class Program
                         var string = "";
                         for (var count = 0; count < number; ++count)
                         {
-                            string += this.#data[operands[0]].data;
+                            string += op0.data;
                         }
 
-                        this.#data[operands[0]].data = string;
+                        this.#set(operands[0], Object.typeof.string, string);
 
                         break;
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.number;
-                    this.#data[operands[0]].data *= this.#data[operands[1]].data;
+                    this.#set(operands[0], Object.typeof.number, op0.data * op1.data);
                 }
                 break;
                 case "/=":
                 {
-                    if (this.#data[operands[0]].symbol_type !== Object.typeof.variable)
-                    {
-                        throw new Error(`can't assign to not variable at (${position.row}, ${position.column})`);
-                    }
-                    if (this.#data[operands[0]].type !== Object.typeof.number ||
-                        this.#data[operands[1]].type !== Object.typeof.number
+                    const op0 = this.#get(operands[0]);
+                    const op1 = this.#get(operands[1]);
+
+                    if (op0.type !== Object.typeof.number ||
+                        op1.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
-                    if (this.#data[operands[1]].data === 0)
+                    if (op1.data == 0)
                     {
                         throw new Error(`division by zero at (${position.row}, ${position.column})`);
                     }
 
-                    this.#data[operands[0]].data /= this.#data[operands[1]].data;
+                    this.#set(operands[0], Object.typeof.number, op0.data / op1.data);
                 }
                 break;
                 case "//=":
                 {
-                    if (this.#data[operands[0]].symbol_type !== Object.typeof.variable)
-                    {
-                        throw new Error(`can't assign to not variable at (${position.row}, ${position.column})`);
-                    }
-                    if (this.#data[operands[0]].type !== Object.typeof.number ||
-                        this.#data[operands[1]].type !== Object.typeof.number
+                    const op0 = this.#get(operands[0]);
+                    const op1 = this.#get(operands[1]);
+
+                    if (op0.type !== Object.typeof.number ||
+                        op1.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
-                    if (this.#data[operands[1]].data === 0)
+                    if (op1.data === 0)
                     {
                         throw new Error(`division by zero at (${position.row}, ${position.column})`);
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.number;
-                    this.#data[operands[0]].data = 
-                    Math.trunc(this.#data[operands[0]].data / this.#data[operands[1]].data);
+                    this.#set(operands[0], Object.typeof.number, Math.trunc(op0.data / op1.data));
                 }
                 break;
                 case "%=":
                 {
-                    if (this.#data[operands[0]].symbol_type !== Object.typeof.variable)
-                    {
-                        throw new Error(`can't assign to not variable at (${position.row}, ${position.column})`);
-                    }
-                    if (this.#data[operands[0]].type !== Object.typeof.number ||
-                        this.#data[operands[1]].type !== Object.typeof.number
+                    const op0 = this.#get(operands[0]);
+                    const op1 = this.#get(operands[1]);
+
+                    if (op0.type !== Object.typeof.number ||
+                        op1.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
-                    if (this.#data[operands[1]].data === 0)
+                    if (op1.data == 0)
                     {
                         throw new Error(`division by zero at (${position.row}, ${position.column})`);
                     }
 
-                    this.#data[operands[0]].data %= this.#data[operands[1]].data;
+                    this.#set(operands[0], Object.typeof.number, op0.data % op1.data);
                 }
                 break;
 
@@ -1088,74 +1186,17 @@ class Program
                 {
                      for (const position of operands)
                      {
-                        switch (this.#data[position].type)
-                        {
-                            case Object.typeof.null:
-                            {
-                                addOutput("null");
-                            }
-                            break;
-
-                            case Object.typeof.bool:
-                            case Object.typeof.number:
-                            case Object.typeof.string:
-                            {
-                                addOutput(String(this.#data[position].data));   
-                            }
-                            break;
-
-                            case Object.typeof.array:
-                            {
-                                addOutput("[");
-
-                                for (const index in this.#data[position].data)
-                                {
-                                    const ref = this.#data[position].data[index];
-
-                                    if (index > 0)
-                                    {
-                                        addOutput(", ");
-                                    }
-
-                                    switch (this.#data[ref].type)
-                                    {
-                                        case Object.typeof.null:
-                                        {
-                                            addOutput("null");
-                                        }
-                                        break;
-
-                                        case Object.typeof.bool:
-                                        case Object.typeof.number:
-                                        case Object.typeof.string:
-                                        {
-                                            addOutput(String(this.#data[ref].data));   
-                                        }
-                                        break;
-
-                                        case Object.typeof.array:
-                                        {
-                                            addOutput(`[...](${this.#data[ref].data.length})`);
-                                        }
-                                        break;
-                                    }
-                                }
-
-                                addOutput("]");
-                            }
-                            break;
-                        }
+                        this.#print(this.#get(position));
                      }
                 }
                 break;
                 case "await":
                 {
-                    const position  = operands[0];
-                    var text        = "Input";
+                    var text = "Input";
 
-                    if (position !== -1)
+                    if (operands[0] !== -1)
                     {
-                        text = String(this.#data[position].data);
+                        text = String(this.#get(operands[0]).data);
                     }
 
                     end = true;
@@ -1164,162 +1205,88 @@ class Program
                 break;
                 case "input":
                 {
-                    const destination   = operands[0];
-                    const text          = get_input();       
+                    const text = get_input();       
 
-                    this.#data[destination].type = Object.typeof.string;
-                    this.#data[destination].data = text;
-                }
-                break;
-
-                case "get":
-                {
-                    const destination   = operands[0];
-                    const array         = this.#data[operands[1]];
-                    const index         = this.#data[operands[2]];
-                    const object        = this.#data[array.data[index.data]];
-
-                    if (array.type !== Object.typeof.array ||
-                        index.type !== Object.typeof.number
-                    )
-                    {
-                        evoke_error();
-                    }
-
-                    this.#data[destination].type = object.type;
-                    this.#data[destination].data = object.data;
-                }
-                break;
-
-                case "set":
-                {
-                    const array         = this.#data[operands[0]];
-                    const index         = this.#data[operands[1]];
-                    const from          = this.#data[operands[2]];
-                    const object        = this.#data[array.data[index.data]];
-
-                    if (array.type !== Object.typeof.array ||
-                        index.type !== Object.typeof.number
-                    )
-                    {
-                        evoke_error();
-                    }
-
-                    object.type = from.type;
-                    object.data = from.data;
+                    this.#set(operands[0], Object.typeof.string, text);
                 }
                 break;
 
                 case "isb":
                 {
-                    const destination   = this.#data[operands[0]];
-                    const value         = this.#data[operands[1]];
-
-                    destination.type = Object.typeof.bool;
-                    destination.data = value.type === Object.typeof.bool;
+                    this.#set(operands[0], Object.typeof.bool, this.#get(operands[1]).type === Object.typeof.bool);
                 }
                 break;
                 case "isn":
                 {
-                    const destination   = this.#data[operands[0]];
-                    const value         = this.#data[operands[1]];
-
-                    destination.type = Object.typeof.bool;
-                    destination.data = value.type === Object.typeof.number;
+                    this.#set(operands[0], Object.typeof.bool, this.#get(operands[1]).type === Object.typeof.number);
                 }
                 break;
                 case "iss":
                 {
-                    const destination   = this.#data[operands[0]];
-                    const value         = this.#data[operands[1]];
-
-                    destination.type = Object.typeof.bool;
-                    destination.data = value.type === Object.typeof.string;
+                    this.#set(operands[0], Object.typeof.bool, this.#get(operands[1]).type === Object.typeof.string);
                 }
                 break;
                 case "isa":
                 {
-                    const destination   = this.#data[operands[0]];
-                    const value         = this.#data[operands[1]];
-
-                    destination.type = Object.typeof.bool;
-                    destination.data = value.type === Object.typeof.array;
+                    this.#set(operands[0], Object.typeof.bool, this.#get(operands[1]).type === Object.typeof.array);
                 }
                 break;
 
                 case "len":
                 {
-                    const destination   = this.#data[operands[0]];
-                    const object        = this.#data[operands[1]];
+                    const sequence = this.#get(operands[1]);
 
-                    if (object.type !== Object.typeof.string &&
-                        object.type !== Object.typeof.array
+                    if (sequence.type !== Object.typeof.string &&
+                        sequence.type !== Object.typeof.array
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    destination.type = Object.typeof.number;
-                    destination.data = object.data.length;
-                }
-                break;
-
-                case "accs":
-                {
-                    const array = this.#data[operands[1]];
-                    const index = this.#data[operands[2]];
-
-                    if (array.type !== Object.typeof.array ||
-                        index.type !== Object.typeof.number 
-                    )
-                    {
-                        this.#evoke_error();
-                    }
-
-                    this.#data[operands[0]].data = array.data[index.data];
+                    this.#set(operands[0], Object.typeof.number, sequence.data.length);
                 }
                 break;
 
                 case "slice":
                 {
-                    if (this.#data[operands[1]].type !== Object.typeof.string &&
-                        this.#data[operands[1]].type !== Object.typeof.array ||
-                        this.#data[operands[2]].type !== Object.typeof.number ||
-                        this.#data[operands[3]].type !== Object.typeof.number
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+                    const op3 = this.#get(operands[3]);
+
+                    if (op1.type !== Object.typeof.string &&
+                        op1.type !== Object.typeof.array ||
+                        op2.type !== Object.typeof.number ||
+                        op3.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    this.#data[operands[0]].type = this.#data[operands[1]].type;
-                    this.#data[operands[0]].data = this.#data[operands[1]].data.slice(
-                        this.#data[operands[2]].data,
-                        this.#data[operands[3]].data
-                    );
+                    this.#set(operands[0], op1.type, op1.slice(op2.data, op3.data));
                 }
                 break;
 
                 case "bool":
                 {
-                    this.#data[operands[0]].type = Object.typeof.bool;
+                    const op1 = this.#get(operands[1]);
 
-                    switch (this.#data[operands[1]].type)
+                    switch (op1.type)
                     {
                         case Object.typeof.bool:
                         {
-                            this.#data[operands[0]].data = this.#data[operands[1]].data;
+                            this.#set(operands[0], Object.typeof.bool, op1.data);
                         }
                         break;
 
                         case Object.typeof.number:
                         {
-                            this.#data[operands[0]].data = this.#data[operands[1]].data !== 0;
+                            this.#set(operands[0], Object.typeof.bool, op1.data != 0);
                         }
                         break;
 
                         case Object.typeof.string:
                         {
-                            this.#data[operands[0]].data = this.#data[operands[1]].data === "true";
+                            this.#set(operands[0], Object.typeof.bool, op1.data === "true");
                         }
                         break;
 
@@ -1331,15 +1298,15 @@ class Program
 
                 case "num":
                 {
-                    this.#data[operands[0]].type = Object.typeof.number;
+                    const op1 = this.#get(operands[1]);
 
-                    switch (this.#data[operands[1]].type)
+                    switch (op1.type)
                     {
                         case Object.typeof.bool:
                         case Object.typeof.number:
                         case Object.typeof.string:
                         {
-                            this.#data[operands[0]].data = Number(this.#data[operands[1]].data);
+                            this.#set(operands[0], Object.typeof.number, Number(op1.data));
                         }
                         break;
 
@@ -1351,15 +1318,15 @@ class Program
 
                 case "str":
                 {
-                    this.#data[operands[0]].type = Object.typeof.string;
+                    const op1 = this.#get(operands[1]);
 
-                    switch (this.#data[operands[1]].type)
+                    switch (op1.type)
                     {
                         case Object.typeof.bool:
                         case Object.typeof.number:
                         case Object.typeof.string:
                         {
-                            this.#data[operands[0]].data = String(this.#data[operands[1]].data);
+                            this.#set(operands[0], Object.typeof.string, String(op1.data));
                         }
                         break;
 
@@ -1371,378 +1338,391 @@ class Program
 
                 case "or":
                 {
-                    if (this.#data[operands[1]].type !== Object.typeof.bool &&
-                        this.#data[operands[1]].type !== Object.typeof.number ||
-                        this.#data[operands[2]].type !== Object.typeof.bool &&
-                        this.#data[operands[2]].type !== Object.typeof.number
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type !== Object.typeof.bool &&
+                        op1.type !== Object.typeof.number ||
+                        op2.type !== Object.typeof.bool &&
+                        op2.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.bool;
-                    this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data || this.#data[operands[2]].data;
+                    this.#set(operands[0], Object.typeof.bool, op1.data || op2.data);
                 }
                 break;
                 case "and":
                 {
-                    if (this.#data[operands[1]].type !== Object.typeof.bool &&
-                        this.#data[operands[1]].type !== Object.typeof.number ||
-                        this.#data[operands[2]].type !== Object.typeof.bool &&
-                        this.#data[operands[2]].type !== Object.typeof.number
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type !== Object.typeof.bool &&
+                        op1.type !== Object.typeof.number ||
+                        op2.type !== Object.typeof.bool &&
+                        op2.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.bool;
-                    this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data && this.#data[operands[2]].data;
+                    this.#set(operands[0], Object.typeof.bool, op1.data && op2.data);
                 }
                 break;
 
                 case "|":
                 {
-                    if (this.#data[operands[1]].type !== Object.typeof.bool &&
-                        this.#data[operands[1]].type !== Object.typeof.number ||
-                        this.#data[operands[2]].type !== Object.typeof.bool &&
-                        this.#data[operands[2]].type !== Object.typeof.number
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type !== Object.typeof.bool &&
+                        op1.type !== Object.typeof.number ||
+                        op2.type !== Object.typeof.bool &&
+                        op2.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.number;
-                    this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data | this.#data[operands[2]].data;
+                    this.#set(operands[0], Object.typeof.bool, op1.data | op2.data);
                 }
                 break;
                 case "^":
                 {
-                    if (this.#data[operands[1]].type !== Object.typeof.bool &&
-                        this.#data[operands[1]].type !== Object.typeof.number ||
-                        this.#data[operands[2]].type !== Object.typeof.bool &&
-                        this.#data[operands[2]].type !== Object.typeof.number
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type !== Object.typeof.bool &&
+                        op1.type !== Object.typeof.number ||
+                        op2.type !== Object.typeof.bool &&
+                        op2.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.number;
-                    this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data ^ this.#data[operands[2]].data;
+                    this.#set(operands[0], Object.typeof.bool, op1.data ^ op2.data);
                 }
                 break;
                 case "&":
                 {
-                    if (this.#data[operands[1]].type !== Object.typeof.bool &&
-                        this.#data[operands[1]].type !== Object.typeof.number ||
-                        this.#data[operands[2]].type !== Object.typeof.bool &&
-                        this.#data[operands[2]].type !== Object.typeof.number
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type !== Object.typeof.bool &&
+                        op1.type !== Object.typeof.number ||
+                        op2.type !== Object.typeof.bool &&
+                        op2.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.number;
-                    this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data & this.#data[operands[2]].data;
+                    this.#set(operands[0], Object.typeof.bool, op1.data & op2.data);
                 }
                 break;
 
                 case "==":
                 {
-                    if (this.#data[operands[1]].type === Object.typeof.null ||
-                        this.#data[operands[2]].type === Object.typeof.null 
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type === Object.typeof.null ||
+                        op2.type === Object.typeof.null 
                     )
                     {
-                        this.#data[operands[0]].type = Object.typeof.bool;
-                        this.#data[operands[0]].data = 
-                        this.#data[operands[1]].type === this.#data[operands[2]].type;
+                        this.#set(operands[0], Object.typeof.bool, op1.type === op2.type);
 
                         break;
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.bool;
-                    this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data == this.#data[operands[2]].data;
+                    this.#set(operands[0], Object.typeof.bool, op1.data == op2.data);
                 }
                 break;
                 case "!=":
                     {
-                        if (this.#data[operands[1]].type === Object.typeof.null ||
-                            this.#data[operands[2]].type === Object.typeof.null 
-                        )
-                        {
-                            this.#data[operands[0]].type = Object.typeof.bool;
-                            this.#data[operands[0]].data = 
-                            this.#data[operands[1]].type !== this.#data[operands[2]].type;
-    
-                            break;
-                        }
-    
-                        this.#data[operands[0]].type = Object.typeof.bool;
-                        this.#data[operands[0]].data = 
-                        this.#data[operands[1]].data != this.#data[operands[2]].data;
-                    }
-                break;
-                case "===":
-                {
-                    if (this.#data[operands[1]].type === Object.typeof.null ||
-                        this.#data[operands[2]].type === Object.typeof.null 
+                        const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type === Object.typeof.null ||
+                        op2.type === Object.typeof.null 
                     )
                     {
-                        this.#data[operands[0]].type = Object.typeof.bool;
-                        this.#data[operands[0]].data = 
-                        this.#data[operands[1]].type === this.#data[operands[2]].type;
+                        this.#set(operands[0], Object.typeof.bool, op1.type !== op2.type);
 
                         break;
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.bool;
-                    this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data === this.#data[operands[2]].data;
+                    this.#set(operands[0], Object.typeof.bool, op1.data != op2.data);
+                    }
+                break;
+                case "===":
+                {
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type === Object.typeof.null ||
+                        op2.type === Object.typeof.null 
+                    )
+                    {
+                        this.#set(operands[0], Object.typeof.bool, op1.type === op2.type);
+
+                        break;
+                    }
+
+                    this.#set(operands[0], Object.typeof.bool, op1.data === op2.data);
                 }
                 break;
                 case "!==":
+                {
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type === Object.typeof.null ||
+                        op2.type === Object.typeof.null 
+                    )
                     {
-                        if (this.#data[operands[1]].type === Object.typeof.null ||
-                            this.#data[operands[2]].type === Object.typeof.null 
-                        )
-                        {
-                            this.#data[operands[0]].type = Object.typeof.bool;
-                            this.#data[operands[0]].data = 
-                            this.#data[operands[1]].type !== this.#data[operands[2]].type;
-    
-                            break;
-                        }
-    
-                        this.#data[operands[0]].type = Object.typeof.bool;
-                        this.#data[operands[0]].data = 
-                        this.#data[operands[1]].data !== this.#data[operands[2]].data;
+                        this.#set(operands[0], Object.typeof.bool, op1.type === op2.type);
+
+                        break;
                     }
+
+                    this.#set(operands[0], Object.typeof.bool, op1.data !== op2.data);
+                }
                 break;
 
                 case "<":
                 {
-                    if (this.#data[operands[1]].type !== Object.typeof.bool &&
-                        this.#data[operands[1]].type !== Object.typeof.number ||
-                        this.#data[operands[2]].type !== Object.typeof.bool &&
-                        this.#data[operands[2]].type !== Object.typeof.number
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type !== Object.typeof.bool &&
+                        op1.type !== Object.typeof.number ||
+                        op2.type !== Object.typeof.bool &&
+                        op2.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.bool;
-                    this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data < this.#data[operands[2]].data;
+                    this.#set(operands[0], Object.typeof.bool, op1.data < op2.data);
                 }
                 break;
                 case ">":
                 {
-                    if (this.#data[operands[1]].type !== Object.typeof.bool &&
-                        this.#data[operands[1]].type !== Object.typeof.number ||
-                        this.#data[operands[2]].type !== Object.typeof.bool &&
-                        this.#data[operands[2]].type !== Object.typeof.number
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type !== Object.typeof.bool &&
+                        op1.type !== Object.typeof.number ||
+                        op2.type !== Object.typeof.bool &&
+                        op2.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.bool;
-                    this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data > this.#data[operands[2]].data;
+                    this.#set(operands[0], Object.typeof.bool, op1.data > op2.data);
                 }
                 break;
                 case "<=":
                 {
-                    if (this.#data[operands[1]].type !== Object.typeof.bool &&
-                        this.#data[operands[1]].type !== Object.typeof.number ||
-                        this.#data[operands[2]].type !== Object.typeof.bool &&
-                        this.#data[operands[2]].type !== Object.typeof.number
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type !== Object.typeof.bool &&
+                        op1.type !== Object.typeof.number ||
+                        op2.type !== Object.typeof.bool &&
+                        op2.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.bool;
-                    this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data <= this.#data[operands[2]].data;
+                    this.#set(operands[0], Object.typeof.bool, op1.data <= op2.data);
                 }
                 break;
                 case ">=":
                 {
-                    if (this.#data[operands[1]].type !== Object.typeof.bool &&
-                        this.#data[operands[1]].type !== Object.typeof.number ||
-                        this.#data[operands[2]].type !== Object.typeof.bool &&
-                        this.#data[operands[2]].type !== Object.typeof.number
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type !== Object.typeof.bool &&
+                        op1.type !== Object.typeof.number ||
+                        op2.type !== Object.typeof.bool &&
+                        op2.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.bool;
-                    this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data >= this.#data[operands[2]].data;
+                    this.#set(operands[0], Object.typeof.bool, op1.data >= op2.data);
                 }
                 break;
 
                 case "+":
                 {
-                    if (this.#data[operands[1]].type === Object.typeof.array &&
-                        this.#data[operands[2]].type === Object.typeof.array 
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type === Object.typeof.array &&
+                        op2.type === Object.typeof.array 
                     )
                     {
-                        this.#data[operands[0]].type = Object.typeof.array ;
-                        this.#data[operands[0]].data = [];
-                        this.#data[operands[0]].data.push(...this.#data[operands[1]].data);
-                        this.#data[operands[0]].data.push(...this.#data[operands[2]].data);
+                        var result = op1.data;
+                        result.push(...op2.data);
+                        
+                        this.#set(operands[0], Object.typeof.array, result);
 
                         break;
                     }
-                    if (this.#data[operands[1]].type === Object.typeof.null ||
-                        this.#data[operands[2]].type === Object.typeof.null ||
-                        this.#data[operands[1]].type === Object.typeof.array ||
-                        this.#data[operands[2]].type === Object.typeof.array 
+                    if (op1.type === Object.typeof.null ||
+                        op2.type === Object.typeof.null ||
+                        op1.type === Object.typeof.array ||
+                        op2.type === Object.typeof.array 
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    this.#data[operands[0]].type = 
-                    Math.max(this.#data[operands[1]].type, this.#data[operands[2]].type, Object.typeof.number);
-                    this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data + this.#data[operands[2]].data;
+                    this.#set(operands[0], Math.max(op1.type, op2.type), op1.data + op2.data);
                 }
                 break;
                 case "-":
                 {
-                    if (this.#data[operands[1]].type !== Object.typeof.bool &&
-                        this.#data[operands[1]].type !== Object.typeof.number ||
-                        this.#data[operands[2]].type !== Object.typeof.bool &&
-                        this.#data[operands[2]].type !== Object.typeof.number
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type !== Object.typeof.bool &&
+                        op1.type !== Object.typeof.number ||
+                        op2.type !== Object.typeof.bool &&
+                        op2.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.number;
-                    this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data - this.#data[operands[2]].data;
+                    this.#set(operands[0], Math.max(op1.type, op2.type), op1.data - op2.data);
                 }
                 break;
 
                 case "*":
                 {
-                    if (this.#data[operands[2]].type !== Object.typeof.number &&
-                        this.#data[operands[2]].type !== Object.typeof.bool ||
-                        this.#data[operands[1]].type === Object.typeof.null
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op2.type !== Object.typeof.number &&
+                        op2.type !== Object.typeof.bool ||
+                        op1.type === Object.typeof.null
                     )
                     {
                         this.#evoke_error();
                     }
-                    if (this.#data[operands[1]].type === Object.typeof.array)
+
+                    if (op1.type === Object.typeof.array)
                     {
-                        var number = this.#data[operands[2]].data;
-                        if (this.#data[operands[2]].type === Object.typeof.number) 
+                        var number = op2.data;
+                        if (op2.type === Object.typeof.number) 
                         {
                             number = Math.trunc(number);
                         }
-                        else
+                        if (op2.type === Object.typeof.bool) 
                         {
                             number = Number(number);
                         }
-                        this.#data[operands[0]].type = Object.typeof.array;
-                        this.#data[operands[0]].data = [];
 
+                        var array = [];
                         for (var count = 0; count < number; ++count)
                         {
-                            this.#data[operands[0]].data.push(...this.#data[operands[1]].data);
+                            array.push(...op1.data);
                         }
+
+                        this.#set(operands[0], Object.typeof.array, array);
 
                         break;
                     }
-                    if (this.#data[operands[1]].type === Object.typeof.string)
+                    if (op1.type === Object.typeof.string)
                     {
-                        var number = this.#data[operands[2]].data;
-                        if (this.#data[operands[2]].type === Object.typeof.number) 
+                        var number = op2.data;
+                        if (op2.type === Object.typeof.number) 
                         {
                             number = Math.trunc(number);
                         }
-                        else
+                        if (op2.type === Object.typeof.bool)
                         {
                             number = Number(number);
                         }
-                        this.#data[operands[0]].type = Object.typeof.string;
-                        this.#data[operands[0]].data = "";
-
+                        
+                        var string = "";
                         for (var count = 0; count < number; ++count)
                         {
-                            this.#data[operands[0]].data += this.#data[operands[1]].data;
+                            string += op1.data;
                         }
+
+                        this.#set(operands[0], Object.typeof.string, string);
 
                         break;
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.number;
-                    this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data * this.#data[operands[2]].data;
+                    this.#set(operands[0], Object.typeof.number, op1.data * op2.data);
                 }
                 break;
                 case "/":
                 {
-                    if (this.#data[operands[1]].type !== Object.typeof.number ||
-                        this.#data[operands[2]].type !== Object.typeof.number
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type !== Object.typeof.number ||
+                        op2.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
-                    if (this.#data[operands[2]].data == 0)
+                    if (op2.data == 0)
                     {
                         throw new Error(`division by zero at (${position.row}, ${position.column})`);
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.number;
-                    this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data / this.#data[operands[2]].data;
+                    this.#set(operands[0], Object.typeof.number, op1.data / op2.data);
                 }
                 break;
                 case "//":
                 {
-                    if (this.#data[operands[1]].type !== Object.typeof.number ||
-                        this.#data[operands[2]].type !== Object.typeof.number
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type !== Object.typeof.number ||
+                        op2.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
-                    if (this.#data[operands[2]].data === 0)
+                    if (op2.data == 0)
                     {
                         throw new Error(`division by zero at (${position.row}, ${position.column})`);
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.number;
-                    this.#data[operands[0]].data = 
-                    Math.trunc(this.#data[operands[1]].data / this.#data[operands[2]].data);
+                    this.#set(operands[0], Object.typeof.number, Math.trunc(op1.data / op2.data));
                 }
                 break;
                 case "%":
                 {
-                    if (this.#data[operands[1]].type !== Object.typeof.number ||
-                        this.#data[operands[2]].type !== Object.typeof.number
+                    const op1 = this.#get(operands[1]);
+                    const op2 = this.#get(operands[2]);
+
+                    if (op1.type !== Object.typeof.number ||
+                        op2.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
-                    if (this.#data[operands[2]].data === 0)
+                    if (op2.data == 0)
                     {
                         throw new Error(`division by zero at (${position.row}, ${position.column})`);
                     }
 
-                    this.#data[operands[0]].type = Object.typeof.number;
-                    this.#data[operands[0]].data = 
-                    this.#data[operands[1]].data % this.#data[operands[2]].data;
+                    this.#set(operands[0], Object.typeof.number, op1.data % op2.data);
                 }
                 break;
             }

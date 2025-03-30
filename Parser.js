@@ -298,7 +298,12 @@ class Parser
         ],
         Accessing :
         [
-            ["[", "Expression", "Slice", "]", "Accessing"],
+            ["[", "Expression", "Slice", "]", "$Accessing"],
+            [NOP],
+        ],
+        $Accessing :
+        [
+            ["[", "Expression", "Slice", "]", "$Accessing"],
             [NOP],
         ],
         Slice :
@@ -330,8 +335,8 @@ class Parser
         [
             ["print", "(", "Parameters", ")"],
             ["input", "(", "Expression", ")"],
-            ["get", "(", "Expression", ",", "Expression", ")"],
-            ["set", "(", "Expression", ",", "Expression", ",", "Expression", ")"],
+            // ["get", "(", "Expression", ",", "Expression", ")"],
+            // ["set", "(", "Expression", ",", "Expression", ",", "Expression", ")"],
             ["isBool", "(", "Expression", ")"],
             ["isNumber", "(", "Expression", ")"],
             ["isString", "(", "Expression", ")"],
