@@ -325,7 +325,11 @@ class Program
             }
             case "Accessing":
             {
-                if (node.children[2].rule_name === "]")
+                if (node.children[0].rule_name === ".")
+                {
+                    return this.#visitor(node.children[1], arg);
+                }
+                else if (node.children[2].rule_name === "]")
                 {
                     const array = arg;
                     const index = this.#visitor(node.children[1]);
@@ -365,6 +369,21 @@ class Program
                 }
             }
             break;
+            case "MemberAccess":
+            {
+                switch (node.children[0].rule_name)
+                {
+                    case "len":
+                    {
+                        const destination   = this.#create_value(Object.typeof.null, null);
+                        const position      = node.children[0].children.position;
+
+                        this.#create_operation("len", [destination, arg], position);
+
+                        return destination;
+                    }
+                }
+            }
             case "$Accessing":
             {
                 if (node.children[2].rule_name === "]")
@@ -949,14 +968,14 @@ class Program
         
         // DEBUG    
         
-        if (this.#current_operation === 0)
-        {
-            console.log(this.#operations);
-            this.#print_data();
-            console.log(this.#data);
+        // if (this.#current_operation === 0)
+        // {
+        //     console.log(this.#operations);
+        //     this.#print_data();
+        //     console.log(this.#data);
             
-            this.#return_jumps = [];
-        }
+        //     this.#return_jumps = [];
+        // }
         
         // DEBUG
 
@@ -971,13 +990,13 @@ class Program
 
             // DEBUG
 
-            console.log(operation_type, Array(8 - operation_type.length + 1).join(' '), operands);
+            // console.log(operation_type, Array(8 - operation_type.length + 1).join(' '), operands);
 
             // await new Promise(r => setTimeout(r, 1000)); // -----------------------PAUSE--------------------------------
 
-            // DEBUG
+            // this.#print_data("-------------------------------------------------------------");
             
-            this.#print_data("-------------------------------------------------------------");
+            // DEBUG
 
             switch (operation_type)
             {

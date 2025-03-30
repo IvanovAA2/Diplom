@@ -294,10 +294,11 @@ class Parser
 
         $Value :
         [
-            ["Value", "Accessing"]
+            ["Value", "Accessing"],
         ],
         Accessing :
         [
+            [".", "MemberAccess"],
             ["[", "Expression", "Slice", "]", "$Accessing"],
             [NOP],
         ],
@@ -311,6 +312,11 @@ class Parser
             [":", "Expression"],
             [NOP],
         ],
+        MemberAccess :
+        [
+            ["len", "(", ")"],
+        ],
+
         Value :
         [
             ["(", "Expression", ")"],

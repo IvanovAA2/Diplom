@@ -99,20 +99,17 @@ function get_input ()
 
 function run(input) 
 {
-    // var sm = 0, i = 1, j, n = 1000;
-    // var start = performance.now();
-    // while (i <= n)
-    // {
-    // j = 1;
-    // while (j <= n)
-    // {
-    //     sm += 1 / (i * j);
-    //     j += 1;
-    // }
-    // i += 1;
-    // }
-    // console.log(sm);
-    // console.log(performance.now() - start);
+    var sm = 0, i = 1, j, n = 1000;
+    var start = performance.now();
+    for (var i = 1; i <= n; i += 1)
+    {
+        for (var j = 1; j <= n; j += 1)
+        {
+            sm += 1 / (i * j);
+        }
+    }
+    console.log(sm);
+    console.log(performance.now() - start);
 
     console.log("Running:\n" + input);
     clearOutput();
