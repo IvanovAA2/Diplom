@@ -68,6 +68,8 @@ class Parser
             ["Scope"],
             ["Conditional"],
             ["Loop"],
+
+            ["LoopControl"],
         ],
         Scope :
         [
@@ -119,25 +121,6 @@ class Parser
         [
              ["var", "SingleDeclaration"],
         ],
-        LoopScope :
-        [
-            ["{", "LoopStatements", "}"],
-        ],
-        LoopStatements : 
-        [
-            ["LoopStatement", "LoopStatements"],
-            [NOP],
-        ],
-        LoopStatement :
-        [
-            ["Expressions"],
-            ["Declaration"],
-            ["LoopScope"],
-            ["Conditional"],
-            ["Loop"],
-
-            ["LoopControl", ";"],
-        ],
         LoopControl :
         [
             ["break"],
@@ -173,7 +156,6 @@ class Parser
             [",", "Expression", "$Expressions"],
             [";"],
         ],
-
         Expression :
         [
             ["AssignOp"],
@@ -298,30 +280,29 @@ class Parser
         ],
         Accessing :
         [
-            [".", "MemberAccess"],
-            ["[", "Expression", "Slice", "]", "$Accessing"],
+            ["SingleAccessing", "$Accessing"],
             [NOP],
         ],
         $Accessing :
         [
-            ["[", "Expression", "Slice", "]", "$Accessing"],
+            ["SingleAccessing", "$Accessing"],
             [NOP],
+        ],
+        SingleAccessing :
+        [
+            ["[", "Expression", "Slice", "]"],
         ],
         Slice :
         [
             [":", "Expression"],
             [NOP],
         ],
-        MemberAccess :
-        [
-            ["len", "(", ")"],
-        ],
 
         Value :
         [
             ["(", "Expression", ")"],
 
-            ["null"],
+            ["Null"],
             ["Boolean"],
             ["Number"],
             ["String"],
@@ -336,13 +317,10 @@ class Parser
             ["(", "Parameters", ")"],
             [NOP],
         ],
-
         DefaultFunctionCall :
         [
             ["print", "(", "Parameters", ")"],
             ["input", "(", "Expression", ")"],
-            // ["get", "(", "Expression", ",", "Expression", ")"],
-            // ["set", "(", "Expression", ",", "Expression", ",", "Expression", ")"],
             ["isBool", "(", "Expression", ")"],
             ["isNumber", "(", "Expression", ")"],
             ["isString", "(", "Expression", ")"],
@@ -361,6 +339,10 @@ class Parser
             [NOP],
         ],
 
+        Null :
+        [
+            ["null"],
+        ],
         Boolean :
         [
             ["true"],
@@ -490,29 +472,9 @@ class Parser
         return node;
     }
 
-    static #compress (node) 
-    {
-        if (Parser.#is_terminal(node.rule_name) === false)
-        {
-            if (node.children.length === 1) 
-            {
-                return Parser.#compress(node.children[0]);
-            }
-
-            for (var child in node.children) 
-            {
-                node.children[child] = Parser.#compress(node.children[child]);
-            }
-        }
-
-        return node;
-    }
-
     parse ()
     {
         var parse_tree = this.#get_parse_tree("Program");
-
-        Parser.#compress(parse_tree);
 
         return parse_tree;
     }
