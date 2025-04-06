@@ -64,16 +64,21 @@ class Parser
         Statement :
         [
             ["Expressions"],
-            ["Declaration"],
+            ["Declaration", ";"],
             ["Scope"],
             ["Conditional"],
             ["Loop"],
 
-            ["LoopControl"],
+            ["FlowControl"],
         ],
         Scope :
         [
             ["{", "Statements", "}"],
+        ],
+
+        BoolExpression :
+        [
+            ["Expression"],
         ],
 
         Conditional :
@@ -87,11 +92,11 @@ class Parser
         ],
         IfBlock :
         [
-            ["if", "(", "Expression", ")", "Scope"],
+            ["if", "(", "BoolExpression", ")", "Scope"],
         ],
         ElifBlock :
         [
-            ["elif", "(", "Expression", ")", "Scope"],
+            ["elif", "(", "BoolExpression", ")", "Scope"],
         ],
         ElseBlock :
         [
@@ -106,25 +111,22 @@ class Parser
         ],
         While :
         [
-            ["while", "(", "Expression", ")", "LoopScope"],
+            ["while", "(", "BoolExpression", ")", "Scope"],
         ],
         For :
         [
-            ["for", "(", "ExpressionOrForDeclaration", ";", "Expression", ";", "Expression", ")", "LoopScope"],
+            ["for", "(", "ExpressionOrDeclaration", ";", "BoolExpression", ";", "Expression", ")", "Scope"],
         ],
-        ExpressionOrForDeclaration :
+        ExpressionOrDeclaration :
         [
             ["Expression"],
-            ["ForDeclaration"],
+            ["Declaration"],
         ],
-        ForDeclaration :
+        FlowControl :
         [
-             ["var", "SingleDeclaration"],
-        ],
-        LoopControl :
-        [
-            ["break"],
-            ["continue"],
+            ["continue", ";"],
+            ["break", ";"],
+            ["return", "$Expression", ";"],
         ],
 
         Declaration :
@@ -134,7 +136,7 @@ class Parser
         $Declaration :
         [
             [",", "SingleDeclaration", "$Declaration"],
-            [";"],
+            [NOP],
         ],
         SingleDeclaration :
         [
@@ -159,6 +161,11 @@ class Parser
         Expression :
         [
             ["AssignOp"],
+        ],
+        $Expression :
+        [
+            ["Expression"],
+            [NOP],
         ],
 
         AssignOp :
@@ -280,22 +287,23 @@ class Parser
         ],
         Accessing :
         [
-            ["SingleAccessing", "$Accessing"],
-            [NOP],
-        ],
-        $Accessing :
-        [
-            ["SingleAccessing", "$Accessing"],
+            ["SingleAccessing", "Accessing"],
             [NOP],
         ],
         SingleAccessing :
         [
             ["[", "Expression", "Slice", "]"],
+            [".", "MemberAccessing"],
         ],
         Slice :
         [
             [":", "Expression"],
             [NOP],
+        ],
+        MemberAccessing :
+        [
+            ["len"],
+            ["push", "(", "Expression", ")"],
         ],
 
         Value :
@@ -452,7 +460,7 @@ class Parser
                     error_message += " " + token;
                 }
 
-                error_message += ` bur given ${this.#current_token().type}`;
+                error_message += ` but given ${this.#current_token().type}`;
                 throw new Error(error_message);
             }
             else 

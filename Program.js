@@ -1,9 +1,19 @@
 
+class Data
+{
+    type;
+    data;
+
+    constructor (type, data)
+    {
+        this.type = type;
+        this.data = data;
+    }
+}
+
 class Object
 {
-    symbol_type;
-    type;
-    data; 
+    obj;
 
     static typeof =
     {
@@ -16,8 +26,6 @@ class Object
         number  : 2,
         string  : 3,
         array   : 4,
-
-        arac    : 5,
     }
 
     static data_name = new Map
@@ -27,7 +35,6 @@ class Object
         [2, "number"],
         [3, "string"],
         [4, "array"],
-        [5, "arac"],
     ])
 
     static symbol_name = new Map
@@ -39,8 +46,7 @@ class Object
 
     constructor (type, data)
     {
-        this.type   = type;
-        this.data   = data;
+        this.obj = new Data(type, data);
     }
 }
 
@@ -82,7 +88,7 @@ class Program
     #current_scope      = 0;
 
     #time_start         = null;
-    overall_time       = 0;
+    overall_time        = 0;
 
     constructor (parse_tree) 
     {
@@ -93,14 +99,19 @@ class Program
 
     #visitor (node, arg = null)
     {
+        // DEBUG
+        
+        //console.log(node);
+        
+        // DEBUG
+
         switch (node.rule_name)
         {
             case "Program":
             {
-                for (const children of node.children)
-                {
-                    this.#visitor(children, arg);
-                }
+                this.#visitor(node.children[0], [null, null, null, null]);
+
+                // REDO
             }
             break;
 
@@ -127,35 +138,89 @@ class Program
             }
             break;
 
+            case "BoolExpression":
+            {
+                const bool_result   = this.#create_link();
+                const result        = this.#visitor(node.children[0], arg);
+
+                const operation = this.#create_operation("bool", [null, null], null);
+                this.#add_to_link(bool_result, operation, 0);
+                this.#add_to_link(result, operation, 1);
+
+                return bool_result;
+            }
+            break;
+
             case "Conditional":
             {
-                for (const children of node.children)
+                const end       = this.#create_link();
+                var new_arg   = structuredClone(arg);
+
+                const end_create = this.#create_operation("create", [null, new Object(null, null)], null);
+                this.#add_to_link(end, end_create, 0);
+                new_arg[0] = [end, end_create];
+
+                if (node.children.length === 1)
                 {
-                    this.#visitor(children, arg);
+                    this.#visitor(node.children[0], new_arg);
+
+                    this.#operations[end_create].operands[1].obj.data = this.#operations.length - 1;
+                }
+                if (node.children.length === 2)
+                {
+                    this.#visitor(node.children[0], new_arg);
+                    this.#visitor(node.children[1], new_arg);
                 }
             }
             break;
             case "$ElifBlock":
             {
-                for (const children of node.children)
+                if (node.children.length === 1)
                 {
-                    this.#visitor(children, arg);
+                    this.#visitor(node.children[0], arg);
+
+                    this.#operations[arg[0][1]].operands[1].obj.data = this.operations.length - 1;
+                }
+                if (node.children.length === 2)
+                {
+                    this.#visitor(node.children[0], arg);
+                    this.#visitor(node.children[1], arg);
                 }
             }
             break;
             case "IfBlock":
             {
+                const bool_expression = this.#visitor(node.children[2], null);
 
+                const if_jump = this.#create_operation("if", [new Object(null, null), null], null);
+                this.#add_to_link(bool_expression, if_jump, 1);
+
+                this.#visitor(node.children[4], arg);
+
+                const end_jump = this.#create_operation("jump", [null], null);
+                this.#add_to_link(arg[0][0], end_jump, 0);
+
+                this.#operations[if_jump].operands[0].obj.data = end_jump;
             }
             break;
             case "ElifBlock":
             {
+                const bool_expression = this.#visitor(node.children[2], null);
 
+                const if_jump = this.#create_operation("if", [new Object(null, null), null], null);
+                this.#add_to_link(bool_expression, if_jump, 1);
+
+                this.#visitor(node.children[4], arg);
+
+                const end_jump = this.#create_operation("jump", [null], null);
+                this.#add_to_link(arg[0][0], end_jump, 0);
+
+                this.#operations[if_jump].operands[0].obj.data = end_jump;
             }
             break;
             case "ElseBlock":
             {
-
+                this.#visitor(node.children[1], arg);
             }
             break;
 
@@ -166,41 +231,108 @@ class Program
             break;
             case "While":
             {
+                this.#branch_scope();
 
+                var new_arg = structuredClone(arg); 
+
+                const break_jump = this.#create_operation("=", [null, new Object(null, null)], null);
+                
+                const begin_jump = this.#operations.length - 1; 
+                const bool_expression = this.#visitor(node.children[2], null); 
+                
+                new_arg[1] = [begin_jump];
+                new_arg[2] = [this.#create_link(), break_jump];
+                this.#add_to_link(new_arg[2][0], break_jump, 0);
+
+                const if_jump = this.#create_operation("if", [null, null], null);
+                this.#add_to_link(new_arg[2][0], if_jump, 0);
+                this.#add_to_link(bool_expression, if_jump, 1);
+
+                this.#visitor(node.children[4], new_arg);
+
+                const end_jump = this.#create_operation("jump", [new Object(null, new_arg[1][0])], null);
+
+                this.#operations[break_jump].operands[1].obj.data = end_jump;
+
+                this.#leave_scope();
             }
             break;
             case "For":
             {
+                this.#branch_scope();
 
-            }
-            break;
-            case "ExpressionOrForDeclaration":
-            {
+                var new_arg = structuredClone(arg); 
 
-            }
-            break;
-            case "ForDeclaration":
-            {
-
-            }
-            break;
-            case "LoopControl":
-            {
+                const break_jump = this.#create_operation("=", [null, new Object(null, null)], null);
                 
+                this.#visitor(node.children[2], null); 
+
+                const begin_jump = this.#operations.length - 1; 
+                const bool_expression = this.#visitor(node.children[4], null); 
+                
+                new_arg[1] = [begin_jump];
+                new_arg[2] = [this.#create_link(), break_jump];
+                this.#add_to_link(new_arg[2][0], break_jump, 0);
+
+                const if_jump = this.#create_operation("if", [null, null], null);
+                this.#add_to_link(new_arg[2][0], if_jump, 0);
+                this.#add_to_link(bool_expression, if_jump, 1);
+
+                this.#visitor(node.children[8], new_arg);
+                this.#visitor(node.children[6], new_arg);
+
+                const end_jump = this.#create_operation("jump", [new Object(null, new_arg[1][0])], null);
+
+                this.#operations[break_jump].operands[1].obj.data = end_jump;
+
+                this.#leave_scope();
+            }
+            break;
+            case "ExpressionOrDeclaration":
+            {
+                this.#visitor(node.children[0]);
+            }
+            break;
+            case "FlowControl":
+            {
+                switch (node.children[0].children.string)
+                {
+                    case "continue":
+                    {
+                        const jump = this.#create_operation("jump", [new Object(null, arg[1][0])], null);
+                    }
+                    break;
+                    case "break":
+                    {
+                        const jump = this.#create_operation("jump", [null], null);
+                        this.#add_to_link(arg[2][0], jump, 0);
+                    }
+                    break;
+                    case "return":
+                    {
+                        // TODO
+                    }
+                    break;
+                }
             }
             break;
 
             case "Declaration":
             {
                 this.#visitor(node.children[1], arg);
-                this.#visitor(node.children[2], arg);
+
+                if (node.children.length === 3)
+                {
+                    this.#visitor(node.children[2], arg);
+                }
             }
             break;
             case "$Declaration":
             {
+                this.#visitor(node.children[1], arg);
+
                 if (node.children.length === 3)
                 {
-                    this.#visitor(node.children[1], arg);
                     this.#visitor(node.children[2], arg);
                 }
             }
@@ -214,7 +346,7 @@ class Program
 
                 if (node.children.length === 2)
                 {
-                    this.#visitor(node.children[1], this.#get_object(name, position));
+                    this.#visitor(node.children[1], this.#get_variable(name, position));
                 }
             }
             break;
@@ -248,7 +380,7 @@ class Program
             break;
             case "Expression":
             {
-                this.#visitor(node.children[0], arg);
+                return this.#visitor(node.children[0], arg);
             }
             break;
 
@@ -267,7 +399,7 @@ class Program
             case "$AssignOp":
             {
                 const left              = arg;
-                const right             = this.#create_link();
+                const right             = this.#visitor(node.children[1], null);
                 const position          = node.children[0].children.position;
                 const opearation_type   = node.children[0].children.string;
 
@@ -334,7 +466,7 @@ class Program
 
                 if (node.children.length === 2)
                 {
-                    return this.#visitor(node.children[1], value);;
+                    return this.#visitor(node.children[1], value);
                 }
 
                 return value;
@@ -342,22 +474,95 @@ class Program
             break;
             case "Accessing":
             {
+                const value = this.#visitor(node.children[0], arg);
 
-            }
-            break;
-            case "$Accessing":
-            {
+                if (node.children.length === 2)
+                {
+                    return this.#visitor(node.children[1], value);
+                }
 
+                return value;
             }
             break;
             case "SingleAccessing":
             {
+                if (node.children[0].rule_name === ".")
+                {
+                    return this.#visitor(node.children[1], arg);
+                }
+                else
+                {
+                    if (node.children.length === 3)
+                    {
+                        const result    = this.#create_link();
+                        const array     = arg;
+                        const index     = this.#visitor(node.children[1], null);
+                        const position  = node.children[0].children.position;
 
+                        const operation = this.#create_operation("arac", [null, null, null], position);
+                        this.#add_to_link(result, operation, 0);
+                        this.#add_to_link(array, operation, 1);
+                        this.#add_to_link(index, operation, 2);
+
+                        return result;
+                    }
+                    if (node.children.length === 4)
+                    {
+                        const result    = this.#create_link();
+                        const sequence  = arg;
+                        const begin     = this.#visitor(node.children[1], null);
+                        const end       = this.#visitor(node.children[2], null);
+                        const position  = node.children[0].children.position;
+
+                        const operation = this.#create_operation("slice", [null, null, null, null], position);
+                        this.#add_to_link(result, operation, 0);
+                        this.#add_to_link(sequence, operation, 1);
+                        this.#add_to_link(begin, operation, 2);
+                        this.#add_to_link(end, operation, 3);
+
+                        return result;
+                    }
+                }
             }
             break;
             case "Slice":
             {
+                return this.#visitor(node.children[1], arg);
+            }
+            break;
+            case "MemberAccessing":
+            {
+                const name      = node.children[0].rule_name;
+                const position  = node.children[0].children.position;
 
+                switch (name) 
+                {
+                    case "len":
+                    {
+                        const sequence  = arg;
+                        const length    = this.#create_link();
+
+                        const operation = this.#create_operation("len", [null, null], position);
+                        this.#add_to_link(length, operation, 0);
+                        this.#add_to_link(sequence, operation, 1);
+
+                        return length;
+                    }
+                    break;
+
+                    case "push":
+                    {
+                        const array     = arg;
+                        const element   = this.#visitor(node.children[2], null);
+
+                        const operation = this.#create_operation("push", [null, null], position);
+                        this.#add_to_link(array, operation, 0);
+                        this.#add_to_link(element, operation, 1);
+
+                        return array;
+                    }
+                    break;
+                }
             }
             break;
 
@@ -377,6 +582,11 @@ class Program
                 }
             }
             break;
+            case "id":
+            {
+                return this.#get_variable(node.children.string, node.children.position);
+            }
+            break;
 
             case "FunctionCall":
             {
@@ -391,7 +601,10 @@ class Program
                 {
                     case "print":
                     {
-                        
+                        const parameters = this.#visitor(node.children[2], null);
+
+                        const print = this.#create_operation("print", [null], null);
+                        this.#add_to_link(parameters, print, 0)
                     }
                     break;
                 }
@@ -568,7 +781,7 @@ class Program
     {
         const link = this.#create_link();
         
-        const operation = this.#create_operation("create", [null, new Object(Object.typeof.value, type, data)], null);
+        const operation = this.#create_operation("create", [null, new Object(type, data)], null);
         this.#add_to_link(link, operation, 0);
 
         return link;
@@ -592,10 +805,15 @@ class Program
             throw new Error(`second declaration of "${name}" at (${position.row}, ${position.column})`);
         }
 
-        symbol_table.set(name, new Object(Object.typeof.variable, Object.typeof.null, null));
+        const variable = this.#create_link();
+
+        const operation = this.#create_operation("var", [null], position)
+        this.#add_to_link(variable, operation, 0);
+
+        symbol_table.set(name, variable);
     }
 
-    #get_object (name, position)
+    #get_variable (name, position)
     {
         var scope = this.#current_scope;
 
@@ -633,7 +851,7 @@ class Program
         const position          = current_operation.position;
 
         var message = `can't execute "${operation_type}" with [`;
-        for (const object of operands)
+        for (const index in operands)
         {
             if (index >= from + 1)
             {
@@ -641,21 +859,28 @@ class Program
             }
             if (index >= from) 
             {
-                message += Object.data_name.get(object.type);
+                message += Object.data_name.get(operands[index].obj.type);
             }
             if (index >= to)
             {
                 break;
             }
         }
-        message += `] at (${position.row}, ${position.column})`;
+        if (position !== null)
+        {
+            message += `] at (${position.row}, ${position.column})`;
+        }
+        else
+        {
+            message += `]`;
+        }
 
         throw new Error(message);
     }
 
     #print (object)
     {
-        switch (object.type)
+        switch (object.obj.type)
         {
             case Object.typeof.null:
             {
@@ -667,7 +892,7 @@ class Program
             case Object.typeof.number:
             case Object.typeof.string:
             {
-                addOutput(String(object.data));   
+                addOutput(String(object.obj.data));   
             }
             break;
 
@@ -675,9 +900,9 @@ class Program
             {
                 addOutput("[");
 
-                for (const index in object.data)
+                for (const index in object.obj.data)
                 {
-                    const element = object.data[index];
+                    const element = object.obj.data[index];
         
                     if (index > 0)
                     {
@@ -692,22 +917,42 @@ class Program
             break;
 
             default:
-                console.log(`unknown type: ${object.type}, object ${object}`);
+                console.log(`unknown type: ${object.obj.type}, object ${object}`);
         }
     }
 
     async run () 
     {
+        // DEBUG
+
+        for (const op in this.#operations)
+        {
+            console.log(op + ": " + this.#operations[op].type);
+        }
+        for (const link of this.#links)
+        {
+            var res = "";
+
+            for (const position of link)
+            {
+                res += "(" + position[0] + ", " + position[1] + ") ";
+            }
+
+            console.log(res);
+        }
+
+        // DEBUG
+
         for (const objects of this.#links)
         {
-            const link = new Object(Object.typeof,null, null);
+            const link = new Object(Object.typeof.null, null);
 
             for (const object of objects)
             {
                 const operation = object[0];
                 const position  = object[1];
 
-                this.operations[operation].operands[position] = link;
+                this.#operations[operation].operands[position] = link;
             }
         }
 
@@ -724,6 +969,7 @@ class Program
             
         //     this.#return_jumps = [];
         // }
+        console.log(this.#operations);
         
         // DEBUG
 
@@ -733,16 +979,32 @@ class Program
         {
             const current_operation     = this.#operations[this.#current_operation];
             const operation_type        = current_operation.type;
-            const operands              = current_operation.operands.slice();
+            const operands              = current_operation.operands;
             const position              = current_operation.position;
 
             // DEBUG
 
-            // console.log(operation_type, Array(8 - operation_type.length + 1).join(' '), operands);
+            console.log("---------------------------------");
+            console.log(this.#current_operation + ": " + operation_type);
+
+            console.log("before:");
+            for (const op in operands)
+            {
+                if (operands[op].obj.type === Object.typeof.array)
+                {
+                    var res = op + ": array \t";
+                    for (const element of operands[op].obj.data)
+                    {
+                        res += " " + element.obj.data
+                    }
+                    console.log(res);
+                }
+                else{
+                    console.log(op + ": " + Object.data_name.get(operands[op].obj.type) + " \t" + operands[op].obj.data);
+                }
+            }
 
             // await new Promise(r => setTimeout(r, 1000)); // -----------------------PAUSE--------------------------------
-
-            // this.#print_data("-------------------------------------------------------------");
             
             // DEBUG
 
@@ -750,17 +1012,40 @@ class Program
             {
                 case "if":
                 {
-                    // const bool_expression = operands[1];
+                    const bool_expression = operands[1];
 
-                    // if (bool_expression.data === false)
-                    // {
-                    //     this.#current_operation = operands[0];
-                    // }
+                    if (bool_expression.obj.data === false)
+                    {
+                        this.#current_operation = operands[0].obj.data;
+                    }
                 }
                 break;
                 case "jump":
                 {
-                    // this.#current_operation = operands[0];
+                    this.#current_operation = operands[0].obj.data;
+                }
+                break;
+
+                case "create":
+                {
+                    const object = operands[0];
+                    const value = operands[1];
+
+                    object.obj = structuredClone(value.obj);
+                }
+                break;
+
+                case "push":
+                {
+                    const array = operands[0];
+                    const value = operands[1];
+
+                    if (array.obj.type !== Object.typeof.array)
+                    {
+                        this.#evoke_error();
+                    }
+
+                    array.obj.data.push(structuredClone(value));
                 }
                 break;
 
@@ -769,8 +1054,9 @@ class Program
                     const object = operands[0];
                     const value = operands[1];
 
-                    object.type = value.type;
-                    object.data = structuredClone(value.data);
+                    const data = structuredClone(value.obj.data);
+                    object.obj.type = value.obj.type;
+                    object.obj.data = data;
                 }
                 break;
                 case "+=":
@@ -778,28 +1064,28 @@ class Program
                     const object = operands[0];
                     const value = operands[1];
 
-                    if (object.type === Object.typeof.array &&
-                        value.type === Object.typeof.array 
+                    if (object.obj.type === Object.typeof.array &&
+                        value.obj.type === Object.typeof.array 
                     )
                     {
-                        var result = object.data;
-                        result.push(...value.data);
+                        var result = structuredClone(object.obj.data);
+                        result.push(...structuredClone(value.obj.data));
                         
-                        object.data = structuredClone(result);
+                        object.obj.data = result;
 
                         break;
                     }
-                    if (object.type === Object.typeof.null ||
-                        value.type === Object.typeof.null ||
-                        object.type === Object.typeof.array ||
-                        value.type === Object.typeof.array 
+                    if (object.obj.type === Object.typeof.null ||
+                        value.obj.type === Object.typeof.null ||
+                        object.obj.type === Object.typeof.array ||
+                        value.obj.type === Object.typeof.array 
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    object.type = Math.max(object.type, value.type);
-                    object.data += value.data;
+                    object.obj.type = Math.max(object.obj.type, value.obj.type);
+                    object.obj.data += value.obj.data;
                 }
                 break;
                 case "-=":
@@ -807,17 +1093,17 @@ class Program
                     const object = operands[0];
                     const value = operands[1];
 
-                    if (object.type !== Object.typeof.bool &&
-                        object.type !== Object.typeof.number ||
-                        value.type !== Object.typeof.bool &&
-                        value.type !== Object.typeof.number
+                    if (object.obj.type !== Object.typeof.bool &&
+                        object.obj.type !== Object.typeof.number ||
+                        value.obj.type !== Object.typeof.bool &&
+                        value.obj.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    object.type = Object.typeof.number;
-                    object.data -= value.data;
+                    object.obj.type = Object.typeof.number;
+                    object.obj.data -= value.obj.data;
                 }
                 break;
                 case "*=":
@@ -825,22 +1111,22 @@ class Program
                     const object = operands[0];
                     const value = operands[1];
 
-                    if (value.type !== Object.typeof.number &&
-                        value.type !== Object.typeof.bool ||
-                        object.type === Object.typeof.null
+                    if (value.obj.type !== Object.typeof.number &&
+                        value.obj.type !== Object.typeof.bool ||
+                        object.obj.type === Object.typeof.null
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    if (object.type === Object.typeof.array)
+                    if (object.obj.type === Object.typeof.array)
                     {
-                        var number = value.data;
-                        if (value.type === Object.typeof.number) 
+                        var number = value.obj.data;
+                        if (value.obj.type === Object.typeof.number) 
                         {
                             number = Math.trunc(number);
                         }
-                        if (value.type === Object.typeof.bool) 
+                        if (value.obj.type === Object.typeof.bool) 
                         {
                             number = Number(number);
                         }
@@ -848,22 +1134,22 @@ class Program
                         var array = [];
                         for (var count = 0; count < number; ++count)
                         {
-                            array.push(...object.data);
+                            array.push(...structuredClone(object.obj.data));
                         }
 
-                        object.type = Object.typeof.array;
-                        object.data = structuredClone(array);
+                        object.obj.type = Object.typeof.array;
+                        object.obj.data = array;
 
                         break;
                     }
-                    if (object.type === Object.typeof.string)
+                    if (object.obj.type === Object.typeof.string)
                     {
-                        var number = value.data;
-                        if (value.type === Object.typeof.number) 
+                        var number = value.obj.data;
+                        if (value.obj.type === Object.typeof.number) 
                         {
                             number = Math.trunc(number);
                         }
-                        if (value.type === Object.typeof.bool)
+                        if (value.obj.type === Object.typeof.bool)
                         {
                             number = Number(number);
                         }
@@ -871,17 +1157,17 @@ class Program
                         var string = "";
                         for (var count = 0; count < number; ++count)
                         {
-                            string += object.data;
+                            string += object.obj.data;
                         }
 
-                        object.type = Object.typeof.string;
-                        object.data = structuredClone(string);
+                        object.obj.type = Object.typeof.string;
+                        object.obj.data = string;
 
                         break;
                     }
 
-                    object.type = Object.typeof.number;
-                    object.data *= value.data;
+                    object.obj.type = Object.typeof.number;
+                    object.obj.data *= value.obj.data;
                 }
                 break;
                 case "/=":
@@ -889,19 +1175,19 @@ class Program
                     const object = operands[0];
                     const value = operands[1];
 
-                    if (object.type !== Object.typeof.number ||
-                        value.type !== Object.typeof.number
+                    if (object.obj.type !== Object.typeof.number ||
+                        value.obj.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
-                    if (value.data == 0)
+                    if (value.obj.data == 0)
                     {
                         throw new Error(`division by zero at (${position.row}, ${position.column})`);
                     }
 
-                    object.type = Object.typeof.number;
-                    object.data /= value.data;
+                    object.obj.type = Object.typeof.number;
+                    object.obj.data /= value.obj.data;
                 }
                 break;
                 case "//=":
@@ -909,19 +1195,19 @@ class Program
                     const object = operands[0];
                     const value = operands[1];
 
-                    if (object.type !== Object.typeof.number ||
-                        value.type !== Object.typeof.number
+                    if (object.obj.type !== Object.typeof.number ||
+                        value.obj.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
-                    if (value.data == 0)
+                    if (value.obj.data == 0)
                     {
                         throw new Error(`division by zero at (${position.row}, ${position.column})`);
                     }
 
-                    object.type = Object.typeof.number;
-                    object.data = Math.trunc(object.data / value.data);
+                    object.obj.type = Object.typeof.number;
+                    object.obj.data = Math.trunc(object.obj.data / value.obj.data);
                 }
                 break;
                 case "%=":
@@ -929,25 +1215,25 @@ class Program
                     const object = operands[0];
                     const value = operands[1];
 
-                    if (object.type !== Object.typeof.number ||
-                        value.type !== Object.typeof.number
+                    if (object.obj.type !== Object.typeof.number ||
+                        value.obj.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
-                    if (value.data == 0)
+                    if (value.obj.data == 0)
                     {
                         throw new Error(`division by zero at (${position.row}, ${position.column})`);
                     }
 
-                    object.type = Object.typeof.number;
-                    object.data %= value.data;
+                    object.obj.type = Object.typeof.number;
+                    object.obj.data %= value.obj.data;
                 }
                 break;
 
                 case "print":
                 {
-                     for (const object of operands)
+                     for (const object of operands[0].obj.data)
                      {
                         this.#print(object);
                      }
@@ -955,22 +1241,23 @@ class Program
                 break;
                 case "await":
                 {
-                    // var text = "Input";
+                    var text = "Input";
 
-                    // if (operands[0] !== -1)
-                    // {
-                    //     text = String(operands[0].data);
-                    // }
+                    if (operands[0] !== null)
+                    {
+                        text = String(operands[0].obj.data);
+                    }
 
-                    // end = true;
-                    // wait_for_input(text);
+                    end = true;
+                    wait_for_input(text);
                 }
                 break;
                 case "input":
                 {
-                    // const text = get_input();       
+                    const text = get_input();       
 
-                    // this.#set(operands[0], Object.typeof.string, text);
+                    operands[0].obj.type = Object.typeof.string;
+                    operands[0].obj.data = text;
                 }
                 break;
 
@@ -979,8 +1266,8 @@ class Program
                     const result = operands[0];
                     const value = operands[1];
 
-                    result.type = Object.typeof.bool;
-                    result.data = value.type === Object.typeof.bool;
+                    result.obj.type = Object.typeof.bool;
+                    result.obj.data = value.obj.type === Object.typeof.bool;
                 }
                 break;
                 case "isn":
@@ -988,8 +1275,8 @@ class Program
                     const result = operands[0];
                     const value = operands[1];
 
-                    result.type = Object.typeof.bool;
-                    result.data = value.type === Object.typeof.number;
+                    result.obj.type = Object.typeof.bool;
+                    result.obj.data = value.obj.type === Object.typeof.number;
                 }
                 break;
                 case "iss":
@@ -997,8 +1284,8 @@ class Program
                     const result = operands[0];
                     const value = operands[1];
 
-                    result.type = Object.typeof.bool;
-                    result.data = value.type === Object.typeof.string;
+                    result.obj.type = Object.typeof.bool;
+                    result.obj.data = value.obj.type === Object.typeof.string;
                 }
                 break;
                 case "isa":
@@ -1006,8 +1293,8 @@ class Program
                     const result = operands[0];
                     const value = operands[1];
 
-                    result.type = Object.typeof.bool;
-                    result.data = value.type === Object.typeof.array;
+                    result.obj.type = Object.typeof.bool;
+                    result.obj.data = value.obj.type === Object.typeof.array;
                 }
                 break;
 
@@ -1016,329 +1303,381 @@ class Program
                     const result = operands[0];
                     const sequence = operands[1];
 
-                    if (sequence.type !== Object.typeof.string &&
-                        sequence.type !== Object.typeof.array
+                    if (sequence.obj.type !== Object.typeof.string &&
+                        sequence.obj.type !== Object.typeof.array
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    result.type = Object.typeof.number;
-                    result.data = sequence.data.length;
+                    result.obj.type = Object.typeof.number;
+                    result.obj.data = sequence.obj.data.length;
                 }
                 break;
 
                 case "slice":
                 {
-                    // const op1 = operands[1];
-                    // const op2 = operands[2];
-                    // const op3 = this.#get(operands[3]);
+                    const result    = operands[0];
+                    const sequence  = operands[1];
+                    const begin     = operands[2];
+                    const end       = operands[3];
 
-                    // if (op1.type !== Object.typeof.string &&
-                    //     op1.type !== Object.typeof.array ||
-                    //     op2.type !== Object.typeof.number ||
-                    //     op3.type !== Object.typeof.number
-                    // )
-                    // {
-                    //     this.#evoke_error();
-                    // }
+                    if (sequence.obj.type   !== Object.typeof.string    &&
+                        sequence.obj.type   !== Object.typeof.array     ||
+                        begin.obj.type      !== Object.typeof.number    ||
+                        end.obj.type        !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
 
-                    // this.#set(operands[0], op1.type, op1.slice(op2.data, op3.data));
+                    result.obj.data = sequence.obj.data.slice(begin.obj.data, end.obj.data);
+                }
+                break;
+                case "arac":
+                {
+                    const result    = operands[0];
+                    const array     = operands[1];
+                    const index     = operands[2];
+
+                    if (array.obj.type  !== Object.typeof.array ||
+                        index.obj.type  !== Object.typeof.number 
+                    )
+                    {
+                        this.#evoke_error();
+                    }
+
+                    result.obj = array.obj.data[index.obj.data].obj;
                 }
                 break;
 
                 case "bool":
                 {
-                    // const value = operands[1];
+                    const result = operands[0];
+                    const value = operands[1];
 
-                    // switch (op1.type)
-                    // {
-                    //     case Object.typeof.bool:
-                    //     {
-                    //         this.#set(operands[0], Object.typeof.bool, op1.data);
-                    //     }
-                    //     break;
+                    result.obj.type = Object.typeof.bool;
 
-                    //     case Object.typeof.number:
-                    //     {
-                    //         this.#set(operands[0], Object.typeof.bool, op1.data != 0);
-                    //     }
-                    //     break;
+                    switch (value.obj.type)
+                    {
+                        case Object.typeof.bool:
+                        {
+                            result.obj.data = value.obj.data;
+                        }
+                        break;
 
-                    //     case Object.typeof.string:
-                    //     {
-                    //         this.#set(operands[0], Object.typeof.bool, op1.data === "true");
-                    //     }
-                    //     break;
+                        case Object.typeof.number:
+                        {
+                            result.obj.data = value.obj.data != 0;
+                        }
+                        break;
 
-                    //     default:
-                    //         this.#evoke_error();
-                    // }
+                        case Object.typeof.string:
+                        {
+                            result.obj.data = value.obj.data === "true";
+                        }
+                        break;
+
+                        default:
+                            this.#evoke_error();
+                    }
                 }
                 break;
 
                 case "num":
                 {
-                    // const op1 = operands[1];
+                    const result = operands[0];
+                    const value = operands[1];
 
-                    // switch (op1.type)
-                    // {
-                    //     case Object.typeof.bool:
-                    //     case Object.typeof.number:
-                    //     case Object.typeof.string:
-                    //     {
-                    //         this.#set(operands[0], Object.typeof.number, Number(op1.data));
-                    //     }
-                    //     break;
+                    result.obj.type = Object.typeof.number;
 
-                    //     default:
-                    //         this.#evoke_error();
-                    // }
+                    switch (value.obj.type)
+                    {
+                        case Object.typeof.bool:
+                        case Object.typeof.number:
+                        case Object.typeof.string:
+                        {
+                            result.obj.data = Number(value.obj.data);
+                        }
+                        break;
+
+                        default:
+                            this.#evoke_error();
+                    }
                 }
                 break;
 
                 case "str":
                 {
-                    // const op1 = operands[1];
+                    const result = operands[0];
+                    const value = operands[1];
 
-                    // switch (op1.type)
-                    // {
-                    //     case Object.typeof.bool:
-                    //     case Object.typeof.number:
-                    //     case Object.typeof.string:
-                    //     {
-                    //         this.#set(operands[0], Object.typeof.string, String(op1.data));
-                    //     }
-                    //     break;
+                    result.obj.type = Object.typeof.string;
 
-                    //     default:
-                    //         this.#evoke_error();
-                    // }
+                    switch (op1.obj.type)
+                    {
+                        case Object.typeof.bool:
+                        case Object.typeof.number:
+                        case Object.typeof.string:
+                        {
+                            result.obj.data = String(value.obj.data);
+                        }
+                        break;
+
+                        default:
+                            this.#evoke_error();
+                    }
                 }
                 break;
 
                 case "or":
                 {
-                    // const op1 = operands[1];
-                    // const op2 = operands[2];
+                    const result = operands[0];
+                    const op1 = operands[1];
+                    const op2 = operands[2];
 
-                    // if (op1.type !== Object.typeof.bool &&
-                    //     op1.type !== Object.typeof.number ||
-                    //     op2.type !== Object.typeof.bool &&
-                    //     op2.type !== Object.typeof.number
-                    // )
-                    // {
-                    //     this.#evoke_error();
-                    // }
+                    if (op1.obj.type !== Object.typeof.bool &&
+                        op1.obj.type !== Object.typeof.number ||
+                        op2.obj.type !== Object.typeof.bool &&
+                        op2.obj.type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
 
-                    // this.#set(operands[0], Object.typeof.bool, op1.data || op2.data);
+                    result.obj.type = Object.typeof.bool;
+                    result.obj.data = op1.obj.data || op2.obj.data;
                 }
                 break;
                 case "and":
                 {
-                    // const op1 = operands[1];
-                    // const op2 = operands[2];
+                    const result = operands[0];
+                    const op1 = operands[1];
+                    const op2 = operands[2];
 
-                    // if (op1.type !== Object.typeof.bool &&
-                    //     op1.type !== Object.typeof.number ||
-                    //     op2.type !== Object.typeof.bool &&
-                    //     op2.type !== Object.typeof.number
-                    // )
-                    // {
-                    //     this.#evoke_error();
-                    // }
+                    if (op1.obj.type !== Object.typeof.bool &&
+                        op1.obj.type !== Object.typeof.number ||
+                        op2.obj.type !== Object.typeof.bool &&
+                        op2.obj.type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
 
-                    // this.#set(operands[0], Object.typeof.bool, op1.data && op2.data);
+                    result.obj.type = Object.typeof.bool;
+                    result.obj.data = op1.obj.data && op2.obj.data;
                 }
                 break;
 
                 case "|":
                 {
-                    // const op1 = operands[1];
-                    // const op2 = operands[2];
+                    const result = operands[0];
+                    const op1 = operands[1];
+                    const op2 = operands[2];
 
-                    // if (op1.type !== Object.typeof.bool &&
-                    //     op1.type !== Object.typeof.number ||
-                    //     op2.type !== Object.typeof.bool &&
-                    //     op2.type !== Object.typeof.number
-                    // )
-                    // {
-                    //     this.#evoke_error();
-                    // }
+                    if (op1.obj.type !== Object.typeof.bool &&
+                        op1.obj.type !== Object.typeof.number ||
+                        op2.obj.type !== Object.typeof.bool &&
+                        op2.obj.type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
 
-                    // this.#set(operands[0], Object.typeof.bool, op1.data | op2.data);
+                    result.obj.type = Object.typeof.number;
+                    result.obj.data = op1.obj.data | op2.obj.data;
                 }
                 break;
                 case "^":
                 {
-                    // const op1 = operands[1];
-                    // const op2 = operands[2];
+                    const result = operands[0];
+                    const op1 = operands[1];
+                    const op2 = operands[2];
 
-                    // if (op1.type !== Object.typeof.bool &&
-                    //     op1.type !== Object.typeof.number ||
-                    //     op2.type !== Object.typeof.bool &&
-                    //     op2.type !== Object.typeof.number
-                    // )
-                    // {
-                    //     this.#evoke_error();
-                    // }
+                    if (op1.obj.type !== Object.typeof.bool &&
+                        op1.obj.type !== Object.typeof.number ||
+                        op2.obj.type !== Object.typeof.bool &&
+                        op2.obj.type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
 
-                    // this.#set(operands[0], Object.typeof.bool, op1.data ^ op2.data);
+                    result.obj.type = Object.typeof.number;
+                    result.obj.data = op1.obj.data ^ op2.obj.data;
                 }
                 break;
                 case "&":
                 {
-                    // const op1 = operands[1];
-                    // const op2 = operands[2];
+                    const result = operands[0];
+                    const op1 = operands[1];
+                    const op2 = operands[2];
 
-                    // if (op1.type !== Object.typeof.bool &&
-                    //     op1.type !== Object.typeof.number ||
-                    //     op2.type !== Object.typeof.bool &&
-                    //     op2.type !== Object.typeof.number
-                    // )
-                    // {
-                    //     this.#evoke_error();
-                    // }
+                    if (op1.obj.type !== Object.typeof.bool &&
+                        op1.obj.type !== Object.typeof.number ||
+                        op2.obj.type !== Object.typeof.bool &&
+                        op2.obj.type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
 
-                    // this.#set(operands[0], Object.typeof.bool, op1.data & op2.data);
+                    result.obj.type = Object.typeof.number;
+                    result.obj.data = op1.obj.data & op2.obj.data;
                 }
                 break;
 
                 case "==":
                 {
-                    // const op1 = operands[1];
-                    // const op2 = operands[2];
+                    const result = operands[0];
+                    const op1 = operands[1];
+                    const op2 = operands[2];
 
-                    // if (op1.type === Object.typeof.null ||
-                    //     op2.type === Object.typeof.null 
-                    // )
-                    // {
-                    //     this.#set(operands[0], Object.typeof.bool, op1.type === op2.type);
+                    if (op1.obj.type !== Object.typeof.bool &&
+                        op1.obj.type !== Object.typeof.number ||
+                        op2.obj.type !== Object.typeof.bool &&
+                        op2.obj.type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
 
-                    //     break;
-                    // }
-
-                    // this.#set(operands[0], Object.typeof.bool, op1.data == op2.data);
+                    result.obj.type = Object.typeof.bool;
+                    result.obj.data = op1.obj.data == op2.obj.data;
                 }
                 break;
                 case "!=":
                 {
-                    // const op1 = operands[1];
-                    // const op2 = operands[2];
+                    const result = operands[0];
+                    const op1 = operands[1];
+                    const op2 = operands[2];
 
-                    // if (op1.type === Object.typeof.null ||
-                    //     op2.type === Object.typeof.null 
-                    // )
-                    // {
-                    //     this.#set(operands[0], Object.typeof.bool, op1.type !== op2.type);
+                    if (op1.obj.type !== Object.typeof.bool &&
+                        op1.obj.type !== Object.typeof.number ||
+                        op2.obj.type !== Object.typeof.bool &&
+                        op2.obj.type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
 
-                    //     break;
-                    // }
-
-                    // this.#set(operands[0], Object.typeof.bool, op1.data != op2.data);
+                    result.obj.type = Object.typeof.bool;
+                    result.obj.data = op1.obj.data != op2.obj.data;
                 }
                 break;
                 case "===":
                 {
-                    // const op1 = operands[1];
-                    // const op2 = operands[2];
+                    const result = operands[0];
+                    const op1 = operands[1];
+                    const op2 = operands[2];
 
-                    // if (op1.type === Object.typeof.null ||
-                    //     op2.type === Object.typeof.null 
-                    // )
-                    // {
-                    //     this.#set(operands[0], Object.typeof.bool, op1.type === op2.type);
+                    if (op1.obj.type !== Object.typeof.bool &&
+                        op1.obj.type !== Object.typeof.number ||
+                        op2.obj.type !== Object.typeof.bool &&
+                        op2.obj.type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
 
-                    //     break;
-                    // }
-
-                    // this.#set(operands[0], Object.typeof.bool, op1.data === op2.data);
+                    result.obj.type = Object.typeof.bool;
+                    result.obj.data = op1.obj.data === op2.obj.data;
                 }
                 break;
                 case "!==":
                 {
-                    // const op1 = operands[1];
-                    // const op2 = operands[2];
+                    const result = operands[0];
+                    const op1 = operands[1];
+                    const op2 = operands[2];
 
-                    // if (op1.type === Object.typeof.null ||
-                    //     op2.type === Object.typeof.null 
-                    // )
-                    // {
-                    //     this.#set(operands[0], Object.typeof.bool, op1.type === op2.type);
+                    if (op1.obj.type !== Object.typeof.bool &&
+                        op1.obj.type !== Object.typeof.number ||
+                        op2.obj.type !== Object.typeof.bool &&
+                        op2.obj.type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
 
-                    //     break;
-                    // }
-
-                    // this.#set(operands[0], Object.typeof.bool, op1.data !== op2.data);
+                    result.obj.type = Object.typeof.bool;
+                    result.obj.data = op1.obj.data !== op2.obj.data;
                 }
                 break;
 
                 case "<":
                 {
-                    // const op1 = operands[1];
-                    // const op2 = operands[2];
+                    const result = operands[0];
+                    const op1 = operands[1];
+                    const op2 = operands[2];
 
-                    // if (op1.type !== Object.typeof.bool &&
-                    //     op1.type !== Object.typeof.number ||
-                    //     op2.type !== Object.typeof.bool &&
-                    //     op2.type !== Object.typeof.number
-                    // )
-                    // {
-                    //     this.#evoke_error();
-                    // }
+                    if (op1.obj.type !== Object.typeof.bool &&
+                        op1.obj.type !== Object.typeof.number ||
+                        op2.obj.type !== Object.typeof.bool &&
+                        op2.obj.type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
 
-                    // this.#set(operands[0], Object.typeof.bool, op1.data < op2.data);
+                    result.obj.type = Object.typeof.bool;
+                    result.obj.data = op1.obj.data < op2.obj.data;
                 }
                 break;
                 case ">":
                 {
-                    // const op1 = operands[1];
-                    // const op2 = operands[2];
+                    const result = operands[0];
+                    const op1 = operands[1];
+                    const op2 = operands[2];
 
-                    // if (op1.type !== Object.typeof.bool &&
-                    //     op1.type !== Object.typeof.number ||
-                    //     op2.type !== Object.typeof.bool &&
-                    //     op2.type !== Object.typeof.number
-                    // )
-                    // {
-                    //     this.#evoke_error();
-                    // }
+                    if (op1.obj.type !== Object.typeof.bool &&
+                        op1.obj.type !== Object.typeof.number ||
+                        op2.obj.type !== Object.typeof.bool &&
+                        op2.obj.type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
 
-                    // this.#set(operands[0], Object.typeof.bool, op1.data > op2.data);
+                    result.obj.type = Object.typeof.bool;
+                    result.obj.data = op1.obj.data > op2.obj.data;
                 }
                 break;
                 case "<=":
                 {
-                    // const op1 = operands[1];
-                    // const op2 = operands[2];
+                    const result = operands[0];
+                    const op1 = operands[1];
+                    const op2 = operands[2];
 
-                    // if (op1.type !== Object.typeof.bool &&
-                    //     op1.type !== Object.typeof.number ||
-                    //     op2.type !== Object.typeof.bool &&
-                    //     op2.type !== Object.typeof.number
-                    // )
-                    // {
-                    //     this.#evoke_error();
-                    // }
+                    if (op1.obj.type !== Object.typeof.bool &&
+                        op1.obj.type !== Object.typeof.number ||
+                        op2.obj.type !== Object.typeof.bool &&
+                        op2.obj.type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
 
-                    // this.#set(operands[0], Object.typeof.bool, op1.data <= op2.data);
+                    result.obj.type = Object.typeof.bool;
+                    result.obj.data = op1.obj.data <= op2.obj.data;
                 }
                 break;
                 case ">=":
                 {
-                    // const op1 = operands[1];
-                    // const op2 = operands[2];
+                    const result = operands[0];
+                    const op1 = operands[1];
+                    const op2 = operands[2];
 
-                    // if (op1.type !== Object.typeof.bool &&
-                    //     op1.type !== Object.typeof.number ||
-                    //     op2.type !== Object.typeof.bool &&
-                    //     op2.type !== Object.typeof.number
-                    // )
-                    // {
-                    //     this.#evoke_error();
-                    // }
+                    if (op1.obj.type !== Object.typeof.bool &&
+                        op1.obj.type !== Object.typeof.number ||
+                        op2.obj.type !== Object.typeof.bool &&
+                        op2.obj.type !== Object.typeof.number
+                    )
+                    {
+                        this.#evoke_error();
+                    }
 
-                    // this.#set(operands[0], Object.typeof.bool, op1.data >= op2.data);
+                    result.obj.type = Object.typeof.bool;
+                    result.obj.data = op1.obj.data >= op2.obj.data;
                 }
                 break;
 
@@ -1348,29 +1687,29 @@ class Program
                     const op1 = operands[1];
                     const op2 = operands[2];
 
-                    if (op1.type === Object.typeof.array &&
-                        op2.type === Object.typeof.array 
+                    if (op1.obj.type === Object.typeof.array &&
+                        op2.obj.type === Object.typeof.array 
                     )
                     {
-                        var array = op1.data;
-                        array.push(...op2.data);
+                        var array = structuredClone(op1.obj.data);
+                        array.push(...structuredClone(op2.obj.data));
                         
-                        result.type = Object.typeof.array;
-                        result.data = structuredClone(array);
+                        result.obj.type = Object.typeof.array;
+                        result.obj.data = array;
 
                         break;
                     }
-                    if (op1.type === Object.typeof.null ||
-                        op2.type === Object.typeof.null ||
-                        op1.type === Object.typeof.array ||
-                        op2.type === Object.typeof.array 
+                    if (op1.obj.type === Object.typeof.null ||
+                        op2.obj.type === Object.typeof.null ||
+                        op1.obj.type === Object.typeof.array ||
+                        op2.obj.type === Object.typeof.array 
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    result.type = Math.max(op1.type, op2.type);
-                    result.data = op1.data + op2.data;
+                    result.obj.type = Math.max(op1.obj.type, op2.obj.type);
+                    result.obj.data = op1.obj.data + op2.obj.data;
                 }
                 break;
                 case "-":
@@ -1379,17 +1718,17 @@ class Program
                     const op1 = operands[1];
                     const op2 = operands[2];
 
-                    if (op1.type !== Object.typeof.bool &&
-                        op1.type !== Object.typeof.number ||
-                        op2.type !== Object.typeof.bool &&
-                        op2.type !== Object.typeof.number
+                    if (op1.obj.type !== Object.typeof.bool &&
+                        op1.obj.type !== Object.typeof.number ||
+                        op2.obj.type !== Object.typeof.bool &&
+                        op2.obj.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    result.type = Object.typeof.number;
-                    result.data = op1.data - op2.data;
+                    result.obj.type = Object.typeof.number;
+                    result.obj.data = op1.obj.data - op2.obj.data;
                 }
                 break;
 
@@ -1399,22 +1738,22 @@ class Program
                     const op1 = operands[1];
                     const op2 = operands[2];
 
-                    if (op2.type !== Object.typeof.number &&
-                        op2.type !== Object.typeof.bool ||
-                        op1.type === Object.typeof.null
+                    if (op2.obj.type !== Object.typeof.number &&
+                        op2.obj.type !== Object.typeof.bool ||
+                        op1.obj.type === Object.typeof.null
                     )
                     {
                         this.#evoke_error();
                     }
 
-                    if (op1.type === Object.typeof.array)
+                    if (op1.obj.type === Object.typeof.array)
                     {
-                        var number = op2.data;
-                        if (op2.type === Object.typeof.number) 
+                        var number = op2.obj.data;
+                        if (op2.obj.type === Object.typeof.number) 
                         {
                             number = Math.trunc(number);
                         }
-                        if (op2.type === Object.typeof.bool) 
+                        if (op2.obj.type === Object.typeof.bool) 
                         {
                             number = Number(number);
                         }
@@ -1422,22 +1761,22 @@ class Program
                         var array = [];
                         for (var count = 0; count < number; ++count)
                         {
-                            array.push(...op1.data);
+                            array.push(...structuredClone(op1.obj.data));
                         }
 
-                        result.type = Object.typeof.array;
-                        result.data = structuredClone(array);
+                        result.obj.type = Object.typeof.array;
+                        result.obj.data = array;
 
                         break;
                     }
-                    if (op1.type === Object.typeof.string)
+                    if (op1.obj.type === Object.typeof.string)
                     {
-                        var number = op2.data;
-                        if (op2.type === Object.typeof.number) 
+                        var number = op2.obj.data;
+                        if (op2.obj.type === Object.typeof.number) 
                         {
                             number = Math.trunc(number);
                         }
-                        if (op2.type === Object.typeof.bool)
+                        if (op2.obj.type === Object.typeof.bool)
                         {
                             number = Number(number);
                         }
@@ -1445,17 +1784,17 @@ class Program
                         var string = "";
                         for (var count = 0; count < number; ++count)
                         {
-                            string += op1.data;
+                            string += op1.obj.data;
                         }
 
-                        result.type = Object.typeof.string;
-                        result.data = string;
+                        result.obj.type = Object.typeof.string;
+                        result.obj.data = string;
 
                         break;
                     }
 
-                    result.type = Object.typeof.number;
-                    result.data = op1.data * op2.data;
+                    result.obj.type = Object.typeof.number;
+                    result.obj.data = op1.obj.data * op2.obj.data;
                 }
                 break;
                 case "/":
@@ -1464,19 +1803,19 @@ class Program
                     const op1 = operands[1];
                     const op2 = operands[2];
 
-                    if (op1.type !== Object.typeof.number ||
-                        op2.type !== Object.typeof.number
+                    if (op1.obj.type !== Object.typeof.number ||
+                        op2.obj.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
-                    if (op2.data == 0)
+                    if (op2.obj.data == 0)
                     {
                         throw new Error(`division by zero at (${position.row}, ${position.column})`);
                     }
 
-                    result.type = Object.typeof.number;
-                    result.data = op1.data / op2.data;
+                    result.obj.type = Object.typeof.number;
+                    result.obj.data = op1.obj.data / op2.obj.data;
                 }
                 break;
                 case "//":
@@ -1485,19 +1824,19 @@ class Program
                     const op1 = operands[1];
                     const op2 = operands[2];
 
-                    if (op1.type !== Object.typeof.number ||
-                        op2.type !== Object.typeof.number
+                    if (op1.obj.type !== Object.typeof.number ||
+                        op2.obj.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
-                    if (op2.data == 0)
+                    if (op2.obj.data == 0)
                     {
                         throw new Error(`division by zero at (${position.row}, ${position.column})`);
                     }
 
-                    result.type = Object.typeof.number;
-                    result.data = Math.trunc(op1.data / op2.data);
+                    result.obj.type = Object.typeof.number;
+                    result.obj.data = Math.trunc(op1.obj.data / op2.obj.data);
                 }
                 break;
                 case "%":
@@ -1506,22 +1845,43 @@ class Program
                     const op1 = operands[1];
                     const op2 = operands[2];
 
-                    if (op1.type !== Object.typeof.number ||
-                        op2.type !== Object.typeof.number
+                    if (op1.obj.type !== Object.typeof.number ||
+                        op2.obj.type !== Object.typeof.number
                     )
                     {
                         this.#evoke_error();
                     }
-                    if (op2.data == 0)
+                    if (op2.obj.data == 0)
                     {
                         throw new Error(`division by zero at (${position.row}, ${position.column})`);
                     }
 
-                    result.type = Object.typeof.number;
-                    result.data = op1.data % op2.data;
+                    result.obj.type = Object.typeof.number;
+                    result.obj.data = op1.obj.data % op2.obj.data;
                 }
                 break;
             }
+
+            // DEBUG
+
+            console.log("after:");
+            for (const op in operands)
+            {
+                if (operands[op].obj.type === Object.typeof.array)
+                {
+                    var res = op + ": array \t";
+                    for (const element of operands[op].obj.data)
+                    {
+                        res += " " + element.obj.data
+                    }
+                    console.log(res);
+                }
+                else{
+                    console.log(op + ": " + Object.data_name.get(operands[op].obj.type) + " \t" + operands[op].obj.data);
+                }
+            }
+
+            // DEBUG
 
             ++this.#current_operation;
             if (end)
@@ -1529,6 +1889,7 @@ class Program
                 break;
             }
         }
+        
 
         this.overall_time += performance.now() - this.#time_start;
         this.#time_start = null;

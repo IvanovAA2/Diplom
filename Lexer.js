@@ -68,6 +68,7 @@ class Lexer
         "input",
 
         "len",
+        "push",
         
         "if",
         "elif",
@@ -75,6 +76,11 @@ class Lexer
 
         "for",
         "while",
+        
+        "continue",
+        "break",
+
+        "return",
 
         "or",
         "and",
@@ -291,6 +297,11 @@ class Lexer
                                 string += '\n';
                             }
                             break;
+                            case 't':
+                            {
+                                string += '\t';
+                            }
+                            break;
                         }
                     }
                     else
@@ -422,6 +433,19 @@ class Lexer
                             tokens.push(new Token(this.verify_token("/"), "/", begin_row, begin_column));
                         }
                     }
+                break;
+
+                case '%':
+                    if (this.#next_is_equal('='))
+                        {
+                            tokens.push(new Token(this.verify_token("%="), "%=", begin_row, begin_column));
+                            ++this.#position;
+                            ++this.#column;
+                        }
+                        else
+                        {
+                            tokens.push(new Token(this.verify_token("%"), "%", begin_row, begin_column));
+                        }
                 break;
 
                 case '&':
