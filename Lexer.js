@@ -69,6 +69,8 @@ class Lexer
 
         "len",
         "push",
+        "split",
+        "join",
         
         "if",
         "elif",

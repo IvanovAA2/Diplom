@@ -89,12 +89,17 @@ inputStreamButton.addEventListener('click', function()
     inputStream.disabled = true;
     inputStreamButton.disabled = true;
 
-    program.run();
+    program.run(false);
 });
 
 function get_input ()
 {
-    return inputStream.value;
+    const text = inputStream.value;
+
+    inputStream.value = "";
+    inputStream.placeholder = "";
+
+    return text;
 }
 
 function run(input) 
@@ -111,59 +116,65 @@ function run(input)
     // console.log(sm);
     // console.log(performance.now() - start);
 
+
+    
     console.log("Running:\n" + input);
     clearOutput();
 
-    lexer = new Lexer(input);
-    tokens = lexer.get_tokens();
 
-    console.log(tokens);
 
-    parser = new Parser(tokens);
-    parse_tree = parser.parse();
+    // lexer = new Lexer(input);
+    // tokens = lexer.get_tokens();
 
-    console.log(parse_tree);
+    // console.log(tokens);
 
-    program = new Program(parse_tree);
-    program.run();
+    // parser = new Parser(tokens);
+    // parse_tree = parser.parse();
+
+    // console.log(parse_tree);
+
+    // program = new Program(parse_tree);
+    // program.run();
+
+
     
-    // try
-    // {
-    //     lexer = new Lexer(input);
-    //     tokens = lexer.get_tokens();
-    // }
-    // catch (error)
-    // {
-    //     addOutput("Lexical error: " + error.message, true);
-    //     return;
-    // }
+    try
+    {
+        lexer = new Lexer(input);
+        tokens = lexer.get_tokens();
+    }
+    catch (error)
+    {
+        addOutput("Lexical error: " + error.message, true);
+        return;
+    }
     
-    // try
-    // {
-    //     console.log(tokens);
+    try
+    {
+        console.log(tokens);
         
-    //     parser = new Parser(tokens);
-    //     parse_tree = parser.parse();
+        parser = new Parser(tokens);
+        parse_tree = parser.parse();
         
-    //     console.log(parse_tree);
+        console.log(parse_tree);
         
-    //     program = new Program(parse_tree);
-    // }
-    // catch (error)
-    // {
-    //     addOutput("Semantic error: " + error.message, true);
-    //     return;
-    // }
+        program = new Program(parse_tree);
+    }
+    catch (error)
+    {
+        addOutput("Semantic error: " + error.message, true);
+        return;
+    }
     
-    // try
-    // {
-    //     program.run();
-    // }
-    // catch (error)
-    // {
-    //     addOutput("Runtime error: " + error.message, true);
-    //     return;
-    // }
+    try
+    {
+        program.run();
+    }
+    catch (error)
+    {
+        addOutput("Runtime error: " + error.message, true);
+        return;
+    }
 
     console.log(`time: ${Math.round(program.overall_time * 1000) / 1000}ms`);
 }

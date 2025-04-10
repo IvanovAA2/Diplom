@@ -304,6 +304,8 @@ class Parser
         [
             ["len"],
             ["push", "(", "Expression", ")"],
+            ["split", "(", "Expression", ")"],
+            ["join", "(", "Expression", ")"],
         ],
 
         Value :
@@ -327,13 +329,13 @@ class Parser
         ],
         DefaultFunctionCall :
         [
-            ["print", "(", "Parameters", ")"],
-            ["input", "(", "Expression", ")"],
-            ["isBool", "(", "Expression", ")"],
-            ["isNumber", "(", "Expression", ")"],
-            ["isString", "(", "Expression", ")"],
-            ["isArray", "(", "Expression", ")"],
-            ["len", "(", "Expression", ")"],
+            ["print",       "(", "Parameters", ")"],
+            ["input",       "(", "Expression", ")"],
+            ["isBool",      "(", "Expression", ")"],
+            ["isNumber",    "(", "Expression", ")"],
+            ["isString",    "(", "Expression", ")"],
+            ["isArray",     "(", "Expression", ")"],
+            ["len",         "(", "Expression", ")"],
         ],
 
         Parameters :

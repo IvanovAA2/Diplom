@@ -101,7 +101,7 @@ class Program
     {
         // DEBUG
         
-        //console.log(node);
+        console.log(node.rule_name);
         
         // DEBUG
 
@@ -562,6 +562,35 @@ class Program
                         return array;
                     }
                     break;
+
+                    case "split":
+                    {
+                        const array     = this.#create_link();
+                        const string    = arg;
+                        const separator = this.#visitor(node.children[2], null);
+
+                        const operation = this.#create_operation("split", [null, null, null], position);
+                        this.#add_to_link(array, operation, 0);
+                        this.#add_to_link(string, operation, 1);
+                        this.#add_to_link(separator, operation, 2);
+
+                        return array;
+                    }
+                    break;
+                    case "join":
+                    {
+                        const string    = this.#create_link();
+                        const array     = arg;
+                        const separator = this.#visitor(node.children[2], null);
+
+                        const operation = this.#create_operation("join", [null, null, null], position);
+                        this.#add_to_link(string, operation, 0);
+                        this.#add_to_link(array, operation, 1);
+                        this.#add_to_link(separator, operation, 2);
+
+                        return string;
+                    }
+                    break;
                 }
             }
             break;
@@ -605,6 +634,19 @@ class Program
 
                         const print = this.#create_operation("print", [null], null);
                         this.#add_to_link(parameters, print, 0)
+                    }
+                    break;
+                    case "input":
+                    {
+                        const output_text = this.#visitor(node.children[2], null);
+                        const input_text = this.#create_link();
+
+                        const await = this.#create_operation("await", [null], null);
+                        this.#add_to_link(output_text, await, 0);
+                        const input = this.#create_operation("input", [null], null);
+                        this.#add_to_link(input_text, input, 0);
+
+                        return input_text;
                     }
                     break;
                 }
@@ -699,7 +741,7 @@ class Program
             {
                 if (node.children.length === 1)
                 {
-                    return this.#create_value(Object.typeof.number, node.children[0].children.string);
+                    return this.#create_value(Object.typeof.string, node.children[0].children.string);
                 }
 
                 const expression    = this.#visitor(node.children[2], arg);
@@ -890,9 +932,13 @@ class Program
 
             case Object.typeof.bool:
             case Object.typeof.number:
-            case Object.typeof.string:
             {
                 addOutput(String(object.obj.data));   
+            }
+            break;
+            case Object.typeof.string:
+            {
+                addOutput('"' + object.obj.data + '"');   
             }
             break;
 
@@ -921,41 +967,44 @@ class Program
         }
     }
 
-    async run () 
+    async run (create_links = true) 
     {
-        // DEBUG
 
-        for (const op in this.#operations)
+        if (create_links)
         {
-            console.log(op + ": " + this.#operations[op].type);
-        }
-        for (const link of this.#links)
-        {
-            var res = "";
+            // DEBUG
 
-            for (const position of link)
+            for (const op in this.#operations)
             {
-                res += "(" + position[0] + ", " + position[1] + ") ";
+                console.log(op + ": " + this.#operations[op].type);
+            }
+            for (const link of this.#links)
+            {
+                var res = "";
+
+                for (const position of link)
+                {
+                    res += "(" + position[0] + ", " + position[1] + ") ";
+                }
+
+                console.log(res);
             }
 
-            console.log(res);
-        }
+            // DEBUG
 
-        // DEBUG
-
-        for (const objects of this.#links)
-        {
-            const link = new Object(Object.typeof.null, null);
-
-            for (const object of objects)
+            for (const objects of this.#links)
             {
-                const operation = object[0];
-                const position  = object[1];
+                const link = new Object(Object.typeof.null, null);
 
-                this.#operations[operation].operands[position] = link;
+                for (const object of objects)
+                {
+                    const operation = object[0];
+                    const position  = object[1];
+
+                    this.#operations[operation].operands[position] = link;
+                }
             }
         }
-
 
         this.#time_start = performance.now();
         
@@ -1042,7 +1091,7 @@ class Program
 
                     if (array.obj.type !== Object.typeof.array)
                     {
-                        this.#evoke_error();
+                        throw new Error(`can't push not into array at (${position.row}, ${position.column})`);
                     }
 
                     array.obj.data.push(structuredClone(value));
@@ -1241,12 +1290,12 @@ class Program
                 break;
                 case "await":
                 {
-                    var text = "Input";
-
-                    if (operands[0] !== null)
+                    if (operands[0].obj.type !== Object.typeof.string)
                     {
-                        text = String(operands[0].obj.data);
+                        throw new Error(`only string allowed inside "input"`);
                     }
+
+                    const text = operands[0].obj.data;
 
                     end = true;
                     wait_for_input(text);
@@ -1312,6 +1361,56 @@ class Program
 
                     result.obj.type = Object.typeof.number;
                     result.obj.data = sequence.obj.data.length;
+                }
+                break;
+                case "split":
+                {
+                    const array = operands[0];
+                    const string = operands[1];
+                    const separator = operands[2];
+
+                    if (string.obj.type !== Object.typeof.string &&
+                        separator.obj.type !== Object.typeof.string
+                    )
+                    {
+                        this.#evoke_error();
+                    }
+
+                    array.obj.type = Object.typeof.array;
+
+                    array.obj.data = [];
+                    for (const element of string.obj.data.split(separator.obj.data))
+                    {
+                        array.obj.data.push(new Object(Object.typeof.string, element));
+                    }
+                }
+                break;
+                case "join":
+                {
+                    const string = operands[0];
+                    const array = operands[1];
+                    const separator = operands[2];
+
+                    if (string.obj.type !== Object.typeof.string &&
+                        separator.obj.type !== Object.typeof.string
+                    )
+                    {
+                        this.#evoke_error();
+                    }
+
+                    string.obj.type = Object.typeof.string;
+
+                    var temp_array = [];
+                    for (const element of array.obj.data)
+                    {
+                        if (element.obj.type !== Object.typeof.string)
+                        {
+                            throw new Error(`can't join not strings at (${position.row}, ${position.column})`);
+                        }
+
+                        temp_array.push(element.obj.data);
+                    }
+                    string.obj.data = temp_array.join(separator.obj.data);
                 }
                 break;
 
