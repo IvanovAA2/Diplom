@@ -1,0 +1,17 @@
+func foo (n)
+{
+    print(n, "\n");
+    
+    if (n)
+    {
+        foo(n - 1);
+    }
+    else
+    {
+        print(n, "\n");
+    }
+    
+    print(n, "\n");
+}
+
+foo(10);

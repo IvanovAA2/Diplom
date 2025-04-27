@@ -1,0 +1,11 @@
+func foo (n)
+{
+    print(n, " ");
+    if (n)
+    {
+        foo(n - 1);
+    }
+    print(n, " ");
+}
+
+foo(4);

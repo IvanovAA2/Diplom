@@ -33,9 +33,9 @@ class Lexer
     #row        = 1;
     #column     = 1;
 
-    static #is_letter_regex     = /[A-Za-z]/;
-    static #is_digit_regex      = /[0-9]/;
-    static #is_whitespace_regex = /[ \n\r\t\v]/;
+    static is_letter_regex      = /[A-Za-z]/;
+    static is_digit_regex       = /[0-9]/;
+    static is_whitespace_regex  = /[ \n\r\t\v]/;
 
     static keywords = new Set
     ([
@@ -59,6 +59,7 @@ class Lexer
         "number",
         "string",
 
+        "isNull",
         "isBool",
         "isNumber",
         "isString",
@@ -69,6 +70,7 @@ class Lexer
 
         "len",
         "push",
+        "pop",
         "split",
         "join",
         
@@ -83,6 +85,8 @@ class Lexer
         "break",
 
         "return",
+
+        "func",
 
         "or",
         "and",
@@ -144,7 +148,7 @@ class Lexer
 
     #is_letter_check(c) 
     {
-        return Lexer.#is_letter_regex.test(c);
+        return Lexer.is_letter_regex.test(c);
     }
 
     #is_letter()
@@ -158,7 +162,7 @@ class Lexer
 
     #is_digit_check(c) 
     {
-        return Lexer.#is_digit_regex.test(c);
+        return Lexer.is_digit_regex.test(c);
     }
 
     #is_digit()
@@ -190,7 +194,7 @@ class Lexer
 
     #is_whitespace()
     {
-        return Lexer.#is_whitespace_regex.test(this.#input[this.#position]);
+        return Lexer.is_whitespace_regex.test(this.#input[this.#position]);
     }
     
     get_tokens() 
@@ -201,8 +205,8 @@ class Lexer
 
         while (this.#position < this.#input.length) 
         {
-            const begin_row     = this.#row;
-            const begin_column  = this.#column;
+            const BEGIN_ROW     = this.#row;
+            const BEGIN_COLUMN  = this.#column;
             
             if (this.#is_whitespace()) 
             {
@@ -244,11 +248,11 @@ class Lexer
 
                 if (Lexer.keywords.has(word)) 
                 {
-                    tokens.push(new Token(word, word, begin_row, begin_column));
+                    tokens.push(new Token(word, word, BEGIN_ROW, BEGIN_COLUMN));
                 }
                 else 
                 {
-                    tokens.push(new Token(this.verify_token("id"), word, begin_row, begin_column));
+                    tokens.push(new Token(this.verify_token("id"), word, BEGIN_ROW, BEGIN_COLUMN));
                 }
                 continue;
             }
@@ -276,17 +280,17 @@ class Lexer
                         ++this.#column;
                     }
                 }
-                tokens.push(new Token(this.verify_token("numberToken"), number, begin_row, begin_column));
+                tokens.push(new Token(this.verify_token("numberToken"), number, BEGIN_ROW, BEGIN_COLUMN));
                 
                 continue;
             }
 
             if (this.#is_equal('"') || this.#is_equal("'"))
             {
-                const quote = this.#input[this.#position++];
+                const QUOTE = this.#input[this.#position++];
                 var string  = "";
 
-                while (this.#is_equal(quote) === false)
+                while (this.#is_equal(QUOTE) === false)
                 {
                     if (this.#is_equal('\\')) 
                     {
@@ -314,13 +318,13 @@ class Lexer
                     ++this.#column;
                     if (++this.#position === this.#input.length)
                     {
-                        throw new Error(`string started at (${begin_row}, ${begin_column}}) wasn't closed`);
+                        throw new Error(`string started at (${BEGIN_ROW}, ${BEGIN_COLUMN}}) wasn't closed`);
                     }
                 }
 
                 ++this.#column;
                 ++this.#position
-                tokens.push(new Token(this.verify_token("stringToken"), string, begin_row, begin_column));
+                tokens.push(new Token(this.verify_token("stringToken"), string, BEGIN_ROW, BEGIN_COLUMN));
                 
                 continue;
             }
@@ -328,81 +332,81 @@ class Lexer
             switch (this.#input[this.#position]) 
             {
                 case '{':
-                    tokens.push(new Token(this.verify_token("{"), "{", begin_row, begin_column));
+                    tokens.push(new Token(this.verify_token("{"), "{", BEGIN_ROW, BEGIN_COLUMN));
                 break;
 
                 case '}':
-                    tokens.push(new Token(this.verify_token("}"), "}", begin_row, begin_column));
+                    tokens.push(new Token(this.verify_token("}"), "}", BEGIN_ROW, BEGIN_COLUMN));
                 break;
 
                 case '[':
-                    tokens.push(new Token(this.verify_token("["), "[", begin_row, begin_column));
+                    tokens.push(new Token(this.verify_token("["), "[", BEGIN_ROW, BEGIN_COLUMN));
                 break;
 
                 case ']':
-                    tokens.push(new Token(this.verify_token("]"), "]", begin_row, begin_column));
+                    tokens.push(new Token(this.verify_token("]"), "]", BEGIN_ROW, BEGIN_COLUMN));
                 break;
 
                 case '(':
-                    tokens.push(new Token(this.verify_token("("), "(", begin_row, begin_column));
+                    tokens.push(new Token(this.verify_token("("), "(", BEGIN_ROW, BEGIN_COLUMN));
                 break;
 
                 case ')':
-                    tokens.push(new Token(this.verify_token(")"), ")", begin_row, begin_column));
+                    tokens.push(new Token(this.verify_token(")"), ")", BEGIN_ROW, BEGIN_COLUMN));
                 break;
 
                 case ':':
-                    tokens.push(new Token(this.verify_token(":"), ":", begin_row, begin_column));
+                    tokens.push(new Token(this.verify_token(":"), ":", BEGIN_ROW, BEGIN_COLUMN));
                 break;
 
                 case ';':
-                    tokens.push(new Token(this.verify_token(";"), ";", begin_row, begin_column));
+                    tokens.push(new Token(this.verify_token(";"), ";", BEGIN_ROW, BEGIN_COLUMN));
                 break;
 
                 case '.':
-                    tokens.push(new Token(this.verify_token("."), ".", begin_row, begin_column));
+                    tokens.push(new Token(this.verify_token("."), ".", BEGIN_ROW, BEGIN_COLUMN));
                 break;
 
                 case ',':
-                    tokens.push(new Token(this.verify_token(","), ",", begin_row, begin_column));
+                    tokens.push(new Token(this.verify_token(","), ",", BEGIN_ROW, BEGIN_COLUMN));
                 break;
 
                 case '+':
                     if (this.#next_is_equal('='))
                     {
-                        tokens.push(new Token(this.verify_token("+="), "+=", begin_row, begin_column));
+                        tokens.push(new Token(this.verify_token("+="), "+=", BEGIN_ROW, BEGIN_COLUMN));
                         ++this.#position;
                         ++this.#column;
                     }
                     else
                     {
-                        tokens.push(new Token(this.verify_token("+"), "+", begin_row, begin_column));
+                        tokens.push(new Token(this.verify_token("+"), "+", BEGIN_ROW, BEGIN_COLUMN));
                     }
                 break;
 
                 case '-':
                     if (this.#next_is_equal('='))
                         {
-                            tokens.push(new Token(this.verify_token("-="), "-=", begin_row, begin_column));
+                            tokens.push(new Token(this.verify_token("-="), "-=", BEGIN_ROW, BEGIN_COLUMN));
                             ++this.#position;
                             ++this.#column;
                         }
                         else
                         {
-                            tokens.push(new Token(this.verify_token("-"), "-", begin_row, begin_column));
+                            tokens.push(new Token(this.verify_token("-"), "-", BEGIN_ROW, BEGIN_COLUMN));
                         }
                 break;
 
                 case '*':
                     if (this.#next_is_equal('='))
                         {
-                            tokens.push(new Token(this.verify_token("*="), "*=", begin_row, begin_column));
+                            tokens.push(new Token(this.verify_token("*="), "*=", BEGIN_ROW, BEGIN_COLUMN));
                             ++this.#position;
                             ++this.#column;
                         }
                         else
                         {
-                            tokens.push(new Token(this.verify_token("*"), "*", begin_row, begin_column));
+                            tokens.push(new Token(this.verify_token("*"), "*", BEGIN_ROW, BEGIN_COLUMN));
                         }
                 break;
 
@@ -413,26 +417,26 @@ class Lexer
                         ++this.#column;
                         if (this.#next_is_equal('='))
                         {
-                            tokens.push(new Token(this.verify_token("//="), "//=", begin_row, begin_column));
+                            tokens.push(new Token(this.verify_token("//="), "//=", BEGIN_ROW, BEGIN_COLUMN));
                             ++this.#position;
                             ++this.#column;
                         }
                         else
                         {
-                            tokens.push(new Token(this.verify_token("//"), "//", begin_row, begin_column));
+                            tokens.push(new Token(this.verify_token("//"), "//", BEGIN_ROW, BEGIN_COLUMN));
                         }
                     }
                     else
                     {
                         if (this.#next_is_equal('='))
                         {
-                            tokens.push(new Token(this.verify_token("/="), "/=", begin_row, begin_column));
+                            tokens.push(new Token(this.verify_token("/="), "/=", BEGIN_ROW, BEGIN_COLUMN));
                             ++this.#position;
                             ++this.#column;
                         }
                         else
                         {
-                            tokens.push(new Token(this.verify_token("/"), "/", begin_row, begin_column));
+                            tokens.push(new Token(this.verify_token("/"), "/", BEGIN_ROW, BEGIN_COLUMN));
                         }
                     }
                 break;
@@ -440,26 +444,26 @@ class Lexer
                 case '%':
                     if (this.#next_is_equal('='))
                         {
-                            tokens.push(new Token(this.verify_token("%="), "%=", begin_row, begin_column));
+                            tokens.push(new Token(this.verify_token("%="), "%=", BEGIN_ROW, BEGIN_COLUMN));
                             ++this.#position;
                             ++this.#column;
                         }
                         else
                         {
-                            tokens.push(new Token(this.verify_token("%"), "%", begin_row, begin_column));
+                            tokens.push(new Token(this.verify_token("%"), "%", BEGIN_ROW, BEGIN_COLUMN));
                         }
                 break;
 
                 case '&':
-                    tokens.push(new Token(this.verify_token("&"), "&", begin_row, begin_column));
+                    tokens.push(new Token(this.verify_token("&"), "&", BEGIN_ROW, BEGIN_COLUMN));
                 break;
 
                 case '|':
-                    tokens.push(new Token(this.verify_token("&"), "&", begin_row, begin_column));
+                    tokens.push(new Token(this.verify_token("&"), "&", BEGIN_ROW, BEGIN_COLUMN));
                 break;
 
                 case '^':
-                    tokens.push(new Token(this.verify_token("&"), "&", begin_row, begin_column));
+                    tokens.push(new Token(this.verify_token("&"), "&", BEGIN_ROW, BEGIN_COLUMN));
                 break;
 
                 case '=':
@@ -469,18 +473,18 @@ class Lexer
                         ++this.#column;
                         if (this.#next_is_equal('=')) 
                         {
-                            tokens.push(new Token(this.verify_token("==="), "===", begin_row, begin_column));
+                            tokens.push(new Token(this.verify_token("==="), "===", BEGIN_ROW, BEGIN_COLUMN));
                             ++this.#position;
                             ++this.#column;
                         }
                         else 
                         {
-                            tokens.push(new Token(this.verify_token("=="), "==", begin_row, begin_column));
+                            tokens.push(new Token(this.verify_token("=="), "==", BEGIN_ROW, BEGIN_COLUMN));
                         }
                     }
                     else 
                     {
-                        tokens.push(new Token(this.verify_token("="), "=", begin_row, begin_column));
+                        tokens.push(new Token(this.verify_token("="), "=", BEGIN_ROW, BEGIN_COLUMN));
                     }
                 break;
 
@@ -491,13 +495,13 @@ class Lexer
                         ++this.#column;
                         if (this.#next_is_equal('=')) 
                         {
-                            tokens.push(new Token(this.verify_token("!=="), "===", begin_row, begin_column));
+                            tokens.push(new Token(this.verify_token("!=="), "===", BEGIN_ROW, BEGIN_COLUMN));
                             ++this.#position;
                             ++this.#column;
                         }
                         else 
                         {
-                            tokens.push(new Token(this.verify_token("!="), "==", begin_row, begin_column));
+                            tokens.push(new Token(this.verify_token("!="), "==", BEGIN_ROW, BEGIN_COLUMN));
                         }
                     }
                     else 
@@ -509,26 +513,26 @@ class Lexer
                 case '<':
                     if (this.#next_is_equal('=')) 
                     {
-                        tokens.push(new Token(this.verify_token("<="), "<=", begin_row, begin_column));
+                        tokens.push(new Token(this.verify_token("<="), "<=", BEGIN_ROW, BEGIN_COLUMN));
                         ++this.#position;
                         ++this.#column;
                     }
                     else 
                     {
-                        tokens.push(new Token(this.verify_token("<"), "<", begin_row, begin_column));
+                        tokens.push(new Token(this.verify_token("<"), "<", BEGIN_ROW, BEGIN_COLUMN));
                     }
                 break;
 
                 case '>':
                     if (this.#next_is_equal('=')) 
                     {
-                        tokens.push(new Token(this.verify_token(">="), ">=", begin_row, begin_column));
+                        tokens.push(new Token(this.verify_token(">="), ">=", BEGIN_ROW, BEGIN_COLUMN));
                         ++this.#position;
                         ++this.#column;
                     }
                     else 
                     {
-                        tokens.push(new Token(this.verify_token(">"), ">", begin_row, begin_column));
+                        tokens.push(new Token(this.verify_token(">"), ">", BEGIN_ROW, BEGIN_COLUMN));
                     }
                 break;
 

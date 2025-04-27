@@ -1,0 +1,13 @@
+func foo () {}
+
+func bar ()
+{
+    foo();
+}
+
+func foo ()
+{
+    print("foo");
+}
+
+bar();

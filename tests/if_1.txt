@@ -1,0 +1,56 @@
+if (true)
+{
+    print("1\n");
+}   
+else
+{
+    print("2\n");
+}
+
+if (false)
+{
+    print("3\n");
+}   
+else
+{
+    print("4\n");
+}
+
+if (0)
+{
+    print("5\n");
+}   
+elif (1)
+{
+    print("6\n");
+}
+else
+{
+    print("7\n");
+}
+
+if ("")
+{
+    print("8\n");
+}   
+elif ("not empty")
+{
+    print("9\n");
+}
+else
+{
+    print("10\n");
+}
+
+if ([])
+{
+    print("11\n");
+}   
+elif ([1, "also not empty", 3])
+{
+    print("12\n");
+}
+else
+{
+    print("13\n");
+}

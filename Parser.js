@@ -5,9 +5,9 @@ class Node
     rule_name;
     children = null;
 
-    constructor (rule_name)
+    constructor (RULE_NAME)
     {
-        this.rule_name = rule_name;
+        this.rule_name = RULE_NAME;
     }
 
     add_child (child)
@@ -40,9 +40,9 @@ class Parser
         {
             Parser.#ast = new Map();
 
-            for (const rule_name in Parser.#syntax_rules) 
+            for (const RULE_NAME in Parser.#syntax_rules) 
             {
-                Parser.#build_ast(rule_name);
+                Parser.#build_ast(RULE_NAME);
             }
 
             console.log(Parser.#ast);
@@ -69,11 +69,37 @@ class Parser
             ["Conditional"],
             ["Loop"],
 
+            ["Function"],
+
             ["FlowControl"],
         ],
         Scope :
         [
             ["{", "Statements", "}"],
+        ],
+
+        Function :
+        [
+            ["func", "id", "(", "FunctionParameters", ")", "Scope"],
+        ],
+        FunctionParameters :
+        [
+            ["FunctionParameter", "$FunctionParameters"],
+            [NOP],
+        ],
+        $FunctionParameters :
+        [
+            [",", "FunctionParameter", "$FunctionParameters"],
+            [NOP],
+        ],
+        FunctionParameter :
+        [
+            ["id", "$FunctionParameter"],
+        ],
+        $FunctionParameter :
+        [
+            ["=", "Expression"],
+            [NOP],
         ],
 
         BoolExpression :
@@ -304,6 +330,7 @@ class Parser
         [
             ["len"],
             ["push", "(", "Expression", ")"],
+            ["pop", "(", ")"],
             ["split", "(", "Expression", ")"],
             ["join", "(", "Expression", ")"],
         ],
@@ -318,10 +345,14 @@ class Parser
             ["String"],
             ["Array"],
 
-            ["id", "FunctionCall"],
+            ["VariableOrFunctionCall"],
             ["DefaultFunctionCall"],
         ],
 
+        VariableOrFunctionCall :
+        [
+            ["id", "FunctionCall"],
+        ],
         FunctionCall :
         [
             ["(", "Parameters", ")"],
@@ -330,12 +361,12 @@ class Parser
         DefaultFunctionCall :
         [
             ["print",       "(", "Parameters", ")"],
-            ["input",       "(", "Expression", ")"],
+            ["input",       "(", "$Expression", ")"],
+            ["isNull",      "(", "Expression", ")"],
             ["isBool",      "(", "Expression", ")"],
             ["isNumber",    "(", "Expression", ")"],
             ["isString",    "(", "Expression", ")"],
             ["isArray",     "(", "Expression", ")"],
-            ["len",         "(", "Expression", ")"],
         ],
 
         Parameters :
@@ -389,44 +420,44 @@ class Parser
     }
     static #ast = null;
 
-    static #is_terminal(rule_name) 
+    static #is_terminal(RULE_NAME) 
     {
-        return Lexer.tokens.has(rule_name) 
-            || Lexer.keywords.has(rule_name) 
-            || rule_name === EOF;
+        return Lexer.tokens.has(RULE_NAME) 
+            || Lexer.keywords.has(RULE_NAME) 
+            || RULE_NAME === EOF;
     }
 
-    static #build_ast(rule_name)
+    static #build_ast(RULE_NAME)
     {
-        if (rule_name === NOP || Parser.#is_terminal(rule_name)) 
+        if (RULE_NAME === NOP || Parser.#is_terminal(RULE_NAME)) 
         {
-            return new Set([rule_name]);
+            return new Set([RULE_NAME]);
         }
-        if (Parser.#ast.has(rule_name) === false) 
+        if (Parser.#ast.has(RULE_NAME) === false) 
         {
-            const current_rule = Parser.#syntax_rules[rule_name];
-            Parser.#ast.set(rule_name, new Map());
+            const CURRENT_RULE = Parser.#syntax_rules[RULE_NAME];
+            Parser.#ast.set(RULE_NAME, new Map());
 
-            for (const variant in current_rule) 
+            for (const VARIANT in CURRENT_RULE) 
             {
-                const first_tokens = Parser.#build_ast(current_rule[variant][0]);
+                const FIRST_TOKENS = Parser.#build_ast(CURRENT_RULE[VARIANT][0]);
                 
-                for (const token of first_tokens) 
+                for (const TOKEN of FIRST_TOKENS) 
                 {
-                    const current_ast_rule = Parser.#ast.get(rule_name);
+                    const CURRENT_AST_RULE = Parser.#ast.get(RULE_NAME);
 
-                    if (current_ast_rule.has(token)) 
+                    if (CURRENT_AST_RULE.has(TOKEN)) 
                     {
-                        throw new Error(`in "${rule_name}" "${token}" occured in ` +
-                            `"${current_rule[current_ast_rule.get(token)][0]}" ` +
-                            `and "${current_rule[variant][0]}"`);
+                        throw new Error(`in "${RULE_NAME}" "${TOKEN}" occured in ` +
+                            `"${CURRENT_RULE[CURRENT_AST_RULE.get(TOKEN)][0]}" ` +
+                            `and "${CURRENT_RULE[VARIANT][0]}"`);
                     }
-                    current_ast_rule.set(token, variant);
+                    CURRENT_AST_RULE.set(TOKEN, VARIANT);
                 }
             }
         }
 
-        return new Set(Parser.#ast.get(rule_name).keys());
+        return new Set(Parser.#ast.get(RULE_NAME).keys());
     }
 
     #current_token ()
@@ -434,32 +465,32 @@ class Parser
         return this.#tokens[this.#position];
     }
     
-    #get_parse_tree (rule_name)
+    #get_parse_tree (RULE_NAME)
     {
-        var node = new Node(rule_name);
+        var node = new Node(RULE_NAME);
 
-        if (Parser.#is_terminal(rule_name)) 
+        if (Parser.#is_terminal(RULE_NAME)) 
         {
             node.children = this.#tokens[this.#position++];
 
             return node;
         }
 
-        if (Parser.#ast.has(rule_name) === false) 
+        if (Parser.#ast.has(RULE_NAME) === false) 
         {
             throw new Error(`syntax error at (${this.#current_token().position.row}`
-            + `, ${this.#current_token().position.column}): no rule named ${rule_name}`);
+            + `, ${this.#current_token().position.column}): no rule named ${RULE_NAME}`);
         }
-        if (Parser.#ast.get(rule_name).has(this.#current_token().type) === false) 
+        if (Parser.#ast.get(RULE_NAME).has(this.#current_token().type) === false) 
         {
-            if (Parser.#ast.get(rule_name).has(NOP) === false) 
+            if (Parser.#ast.get(RULE_NAME).has(NOP) === false) 
             {
                 var error_message = `error at (${this.#current_token().position.row}`
-                + `, ${this.#current_token().position.column}) in rule "${rule_name}", expected tokens:`;
+                + `, ${this.#current_token().position.column}) in rule "${RULE_NAME}", expected tokens:`;
 
-                for (const token of Parser.#ast.get(rule_name).keys()) 
+                for (const TOKEN of Parser.#ast.get(RULE_NAME).keys()) 
                 {
-                    error_message += " " + token;
+                    error_message += " " + TOKEN;
                 }
 
                 error_message += ` but given ${this.#current_token().type}`;
@@ -471,10 +502,10 @@ class Parser
             }
         }
 
-        const current_rule          = Parser.#syntax_rules[rule_name];
-        const current_token_type    = Parser.#ast.get(rule_name).get(this.#current_token().type);
+        const CURRENT_RULE          = Parser.#syntax_rules[RULE_NAME];
+        const CURRENT_TOKEN_TYPE    = Parser.#ast.get(RULE_NAME).get(this.#current_token().type);
 
-        for (const child_rule of current_rule[current_token_type]) 
+        for (const child_rule of CURRENT_RULE[CURRENT_TOKEN_TYPE]) 
         {
             node.add_child(this.#get_parse_tree(child_rule));
         }
