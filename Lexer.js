@@ -73,6 +73,7 @@ class Lexer
         "pop",
         "split",
         "join",
+        "byteOfChar",
         
         "if",
         "elif",

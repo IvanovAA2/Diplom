@@ -188,7 +188,7 @@ class Visitor
         if (Visitor.VISIT_RULE.hasOwnProperty(NODE.rule_name))
         {
             // DEBUG
-            // console.log(`${NODE.rule_name}`) 
+            console.log(`${NODE.rule_name}`) 
             // DEBUG
             return Visitor.VISIT_RULE[NODE.rule_name](this, NODE, arg);
         }
@@ -282,6 +282,7 @@ class Program
             const OPERATION = this.operations[this.current_operation];
 
             // DEBUG
+            
             // var text = `!!!!!!!!!!!!!!!!!\n${this.current_operation} \t${Operation.OPERATIONS[OPERATION.type]} (${OPERATION.type}): `;
             // for (const OPERAND of OPERATION.operands)
             // {
@@ -295,6 +296,7 @@ class Program
             //     }
             // }
             // console.log(text);
+            
             // DEBUG
             
             Operation.OPERATION[OPERATION.type](this, OPERATION.operands);
@@ -372,18 +374,25 @@ function (visitor, node, arg)
 Visitor.VISIT_RULE["Statement"] = 
 function (visitor, node, arg)
 {
-    visitor.visit(node, arg, 1);
+    if (name_of(node, 1) === "Scope")
+    {
+        branch_scope(visitor);
+        
+        visitor.visit(node, arg, 1);
+        
+        leave_scope(visitor);
+    }
+    else
+    {
+        visitor.visit(node, arg, 1);
+    }
 }
 Visitor.VISIT_RULE["Scope"] = 
 function (visitor, node, arg)
 {
     if (length_is(node, 3))
     {
-        branch_scope(visitor);
-
         visitor.visit(node, arg, 2);
-
-        leave_scope(visitor);
     }
 }
 
@@ -543,7 +552,9 @@ function (visitor, node, arg)
         null
     );
     
+    branch_scope(visitor);
     visitor.visit(node, arg, 5)
+    leave_scope(visitor);
     
     create_operation(
         visitor, 
@@ -565,7 +576,9 @@ function (visitor, node, arg)
         null
     );
     
+    branch_scope(visitor);
     visitor.visit(node, arg, 5)
+    leave_scope(visitor);
     
     create_operation(
         visitor, 
@@ -579,7 +592,9 @@ function (visitor, node, arg)
 Visitor.VISIT_RULE["ElseBlock"] = 
 function (visitor, node, arg)
 {
+    branch_scope(visitor);
     visitor.visit(node, arg, 2);
+    leave_scope(visitor);
 }
 
 Visitor.VISIT_RULE["Loop"] = 
@@ -592,7 +607,7 @@ function (visitor, node, arg)
 {
     const BREAK_JUMP        = $create_value(visitor, Data.TYPEOF.jump, null);
     const BEGIN             = next_operation(visitor); 
-    const BOOL_EXPRESSION   = visitor.visit(node, arg, 3);
+    const BOOL_EXPRESSION   = visitor.visit(node, null, 3);
     const CONTINUE_JUMP     = new Data(Data.TYPEOF.jump, BEGIN);
     
     create_operation(
@@ -606,7 +621,9 @@ function (visitor, node, arg)
     ARG_COPY.BREAK = BREAK_JUMP.VALUE;
     ARG_COPY.CONTINUE = CONTINUE_JUMP;
     
-    visitor.visit(node, ARG_COPY, 5)
+    branch_scope(visitor);
+    visitor.visit(node, ARG_COPY, 5);
+    leave_scope(visitor);
     
     create_operation(
         visitor, 
@@ -620,12 +637,55 @@ function (visitor, node, arg)
 Visitor.VISIT_RULE["For"] = 
 function (visitor, node, arg)
 {
+    branch_scope(visitor);
     
+    visitor.visit(node, null, 3);
+    const BREAK_JUMP = $create_value(visitor, Data.TYPEOF.jump, null);
+    
+    const FIRST_JUMP = create_operation(
+        visitor, 
+        get_operation("jump"), 
+        [new Data(Data.TYPEOF.jump, null)], 
+        null
+    );
+    
+    const BEGIN = next_operation(visitor); 
+    
+    visitor.visit(node, null, 7);
+    
+    visitor.operations[FIRST_JUMP].operands[0].data = next_operation(visitor);
+    
+    const BOOL_EXPRESSION   = visitor.visit(node, null, 5);
+    const CONTINUE_JUMP     = new Data(Data.TYPEOF.jump, BEGIN);
+    
+    create_operation(
+        visitor, 
+        get_operation("if"), 
+        [BOOL_EXPRESSION, BREAK_JUMP.VALUE], 
+        null
+    );
+    
+    const ARG_COPY      = structuredClone(arg);
+    ARG_COPY.BREAK      = BREAK_JUMP.VALUE;
+    ARG_COPY.CONTINUE   = CONTINUE_JUMP;
+    
+    visitor.visit(node, ARG_COPY, 9);
+    
+    create_operation(
+        visitor, 
+        get_operation("jump"), 
+        [CONTINUE_JUMP], 
+        null
+    );
+    
+    leave_scope(visitor);
+    
+    visitor.operations[BREAK_JUMP.OPERATION].operands[2] = next_operation(visitor);
 }
 Visitor.VISIT_RULE["ExpressionOrDeclaration"] = 
 function (visitor, node, arg)
 {
-    
+    visitor.visit(node, null, 1);
 }
 Visitor.VISIT_RULE["FlowControl"] = 
 function (visitor, node, arg)
@@ -1711,7 +1771,6 @@ function (program, operands)
         evoke_error(program);
     }
     
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -1735,7 +1794,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -1760,7 +1818,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,       
@@ -1784,7 +1841,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -1808,7 +1864,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -1831,7 +1886,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -1853,7 +1907,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -1875,7 +1928,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -1897,7 +1949,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -1922,7 +1973,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -1946,7 +1996,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -1970,7 +2019,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -1994,7 +2042,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -2019,7 +2066,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     if (LEFT.type === Data.TYPEOF.string ||
         RIGHT.type === Data.TYPEOF.string
     )
@@ -2057,7 +2103,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -2079,7 +2124,6 @@ function (program, operands)
             evoke_error(program);
         }
         
-        deallocate(program, RESULT);
         allocate(
             program,
             RESULT,
@@ -2102,7 +2146,6 @@ function (program, operands)
             array.push(...LEFT.data);
         }
         
-        deallocate(program, RESULT);
         allocate(
             program,
             RESULT,
@@ -2122,7 +2165,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -2144,7 +2186,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -2166,7 +2207,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -2188,7 +2228,6 @@ function (program, operands)
         evoke_error(program);
     }
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -2321,7 +2360,6 @@ function (program, operands)
     const RESULT        = sget(program, operands[0]);
     const EXPRESSION    = get(program, operands[1]);
 
-    deallocate(program, RESULT);
     allocate(
         program,
         RESULT,
@@ -2394,6 +2432,8 @@ function allocate (program, object, type, data)
     }
 
     program.heap[position] = new HeapData(type, data);
+    
+    deallocate(program, object);
 
     object.type = Data.TYPEOF.dref;
     object.data = position;
@@ -2403,8 +2443,6 @@ function allocate_from (program, object, value)
     const OBJECT    = sget(program, object)
     const POSITION  = sget(program, value);
     const VALUE     = get(program, value);
-    
-    deallocate(program, OBJECT);
     
     if (VALUE.type === Data.TYPEOF.string ||
         VALUE.type === Data.TYPEOF.array 

@@ -329,10 +329,11 @@ class Parser
         MemberAccessing :
         [
             ["len"],
-            ["push", "(", "Expression", ")"],
-            ["pop", "(", ")"],
-            ["split", "(", "Expression", ")"],
-            ["join", "(", "Expression", ")"],
+            ["push",        "(", "Expression", ")"],
+            ["pop",         "(", ")"],
+            ["split",       "(", "Expression", ")"],
+            ["join",        "(", "Expression", ")"],
+            ["byteOfChar",  "(", "Expression", ")"],
         ],
 
         Value :

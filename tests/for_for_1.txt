@@ -1,0 +1,11 @@
+var sm = 0, n = 1000;
+
+for (var i = 1; i <= n; i += 1)
+{
+    for (var j = 1; j <= n; j += 1)
+    {
+        sm += 1 / i / j;
+    }
+}
+
+print(sm);
