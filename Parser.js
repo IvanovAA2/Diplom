@@ -1,4 +1,4 @@
- const NOP = "NOP";
+const NOP = "NOP";
 
 class Node
 {
@@ -471,6 +471,14 @@ class Parser
 
         if (Parser.#is_terminal(RULE_NAME)) 
         {
+            if (RULE_NAME != this.#current_token().type)
+            {
+                console.log(RULE_NAME);
+                throw new Error(`can't match token "${this.#current_token().type}" at ` + 
+                `(${this.#current_token().position.row}, ` + 
+                `${this.#current_token().position.column}) with any rule`);
+            }
+            
             node.children = this.#tokens[this.#position++];
 
             return node;

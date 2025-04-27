@@ -187,7 +187,9 @@ class Visitor
 
         if (Visitor.VISIT_RULE.hasOwnProperty(NODE.rule_name))
         {
-            console.log(`${NODE.rule_name}`) 
+            // DEBUG
+            // console.log(`${NODE.rule_name}`) 
+            // DEBUG
             return Visitor.VISIT_RULE[NODE.rule_name](this, NODE, arg);
         }
         else
@@ -244,28 +246,28 @@ class Program
 
             // DEBUG
 
-            var text = "", cnt = -1;
+            // var text = "", cnt = -1;
 
-            for (const OPERATION of this.operations)
-            {
-                text += `${cnt += 1} \t${Operation.OPERATIONS[OPERATION.type]}: \t`;
+            // for (const OPERATION of this.operations)
+            // {
+            //     text += `${cnt += 1} \t${Operation.OPERATIONS[OPERATION.type]}: \t`;
 
-                for (const OPERAND of OPERATION.operands)
-                {
-                    if (OPERAND && OPERAND.hasOwnProperty("data"))
-                    {
-                        text += `(${Data.DATA_NAME.get(OPERAND.type)}: ${OPERAND.data}) `;
-                    }
-                    else
-                    {
-                        text += OPERAND + " ";
-                    }
-                }
+            //     for (const OPERAND of OPERATION.operands)
+            //     {
+            //         if (OPERAND && OPERAND.hasOwnProperty("data"))
+            //         {
+            //             text += `(${Data.DATA_NAME.get(OPERAND.type)}: ${OPERAND.data}) `;
+            //         }
+            //         else
+            //         {
+            //             text += OPERAND + " ";
+            //         }
+            //     }
 
-                text += "\n";
+            //     text += "\n";
 
-            }
-            console.log(text);
+            // }
+            // console.log(text);
 
             // DEBUG
         }
@@ -279,19 +281,22 @@ class Program
 
             const OPERATION = this.operations[this.current_operation];
 
-            var text = `!!!!!!!!!!!!!!!!!\n${this.current_operation} \t${Operation.OPERATIONS[OPERATION.type]} (${OPERATION.type}): `;
-            for (const OPERAND of OPERATION.operands)
-            {
-                if (OPERAND && OPERAND.hasOwnProperty("data"))
-                {
-                    text += `(${Data.DATA_NAME.get(OPERAND.type)}: ${OPERAND.data}) `;
-                }
-                else
-                {
-                    text += OPERAND + " ";
-                }
-            }
-            console.log(text);
+            // DEBUG
+            // var text = `!!!!!!!!!!!!!!!!!\n${this.current_operation} \t${Operation.OPERATIONS[OPERATION.type]} (${OPERATION.type}): `;
+            // for (const OPERAND of OPERATION.operands)
+            // {
+            //     if (OPERAND && OPERAND.hasOwnProperty("data"))
+            //     {
+            //         text += `(${Data.DATA_NAME.get(OPERAND.type)}: ${OPERAND.data}) `;
+            //     }
+            //     else
+            //     {
+            //         text += OPERAND + " ";
+            //     }
+            // }
+            // console.log(text);
+            // DEBUG
+            
             Operation.OPERATION[OPERATION.type](this, OPERATION.operands);
 
             this.current_operation += 1;
@@ -530,9 +535,8 @@ function (visitor, node, arg)
 Visitor.VISIT_RULE["IfBlock"] = 
 function (visitor, node, arg)
 {
-    const BOOL_EXPRESSION = visitor.visit(node, arg, 3);
-    
-    const IF_JUMP = create_operation(
+    const BOOL_EXPRESSION   = visitor.visit(node, arg, 3);
+    const IF_JUMP           = create_operation(
         visitor, 
         get_operation("if"), 
         [BOOL_EXPRESSION, new Data(Data.TYPEOF.jump, null)], 
@@ -553,9 +557,8 @@ function (visitor, node, arg)
 Visitor.VISIT_RULE["ElifBlock"] = 
 function (visitor, node, arg)
 {
-    const BOOL_EXPRESSION = visitor.visit(node, arg, 3);
-    
-    const IF_JUMP = create_operation(
+    const BOOL_EXPRESSION   = visitor.visit(node, arg, 3);
+    const IF_JUMP           = create_operation(
         visitor, 
         get_operation("if"), 
         [BOOL_EXPRESSION, new Data(Data.TYPEOF.jump, null)], 
@@ -582,12 +585,37 @@ function (visitor, node, arg)
 Visitor.VISIT_RULE["Loop"] = 
 function (visitor, node, arg)
 {
-    
+    visitor.visit(node, arg, 1);
 }
 Visitor.VISIT_RULE["While"] = 
 function (visitor, node, arg)
 {
+    const BREAK_JUMP        = $create_value(visitor, Data.TYPEOF.jump, null);
+    const BEGIN             = next_operation(visitor); 
+    const BOOL_EXPRESSION   = visitor.visit(node, arg, 3);
+    const CONTINUE_JUMP     = new Data(Data.TYPEOF.jump, BEGIN);
     
+    create_operation(
+        visitor, 
+        get_operation("if"), 
+        [BOOL_EXPRESSION, BREAK_JUMP.VALUE], 
+        null
+    );
+    
+    const ARG_COPY = structuredClone(arg);
+    ARG_COPY.BREAK = BREAK_JUMP.VALUE;
+    ARG_COPY.CONTINUE = CONTINUE_JUMP;
+    
+    visitor.visit(node, ARG_COPY, 5)
+    
+    create_operation(
+        visitor, 
+        get_operation("jump"), 
+        [CONTINUE_JUMP], 
+        null
+    );
+    
+    visitor.operations[BREAK_JUMP.OPERATION].operands[2] = next_operation(visitor);
 }
 Visitor.VISIT_RULE["For"] = 
 function (visitor, node, arg)
@@ -608,12 +636,22 @@ function (visitor, node, arg)
     {
         case "continue":
         {
-
+            create_operation(
+                visitor, 
+                get_operation("jump"), 
+                [arg.CONTINUE], 
+                null
+            );
         }
         break;
         case "break":
         {
-
+            create_operation(
+                visitor, 
+                get_operation("jump"), 
+                [arg.BREAK], 
+                null
+            );
         }
         break;
         case "return":
@@ -1210,11 +1248,11 @@ function (visitor, node, arg)
         {
             if (length_is(node, 4))
             {
-                var HINT_TEXT = visitor.visit(node, PARAMETERS, 3);
+                var HINT_TEXT = visitor.visit(node, null, 3);
             }
             if (length_is(node, 3))
             {
-                var HINT_TEXT = create_value(visitor, Data.TYPEOF.null, null);
+                var HINT_TEXT = create_value(visitor, Data.TYPEOF.string, "");
             }
 
             create_operation(
@@ -2228,7 +2266,7 @@ function (program, operands)
 Operation.OPERATION[Operation.TYPEOF["await"]] =
 function (program, operands)
 {
-    const HINT_TEXT = get(operands[0]);
+    const HINT_TEXT = get(program, operands[0]);
     
     program.is_end = true;
     
@@ -2246,10 +2284,9 @@ function (program, operands)
 Operation.OPERATION[Operation.TYPEOF["input"]] =
 function (program, operands)
 {
-    const INPUT = get(operands[0]);
+    const INPUT = sget(program, operands[0]);
     
-    INPUT.type = Data.TYPEOF.string;
-    INPUT.data = get_input();
+    allocate(program, INPUT, Data.TYPEOF.string, get_input());
 }
 
 Operation.OPERATION[Operation.TYPEOF["is_null"]] =
@@ -2385,7 +2422,10 @@ function allocate_from (program, object, value)
 }
 function deallocate (program, object)
 {
-    console.log("DEALLOCATE", object);
+    // DEBUG
+    // console.log("DEALLOCATE", object);
+    //DEBUG
+    
     if (object.type === Data.TYPEOF.dref)
     {
         const POSITION = object.data;

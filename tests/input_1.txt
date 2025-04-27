@@ -1,0 +1,3 @@
+var s = input("input something");
+
+print(s);
