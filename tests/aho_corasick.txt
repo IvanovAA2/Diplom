@@ -1,0 +1,181 @@
+var t = [];
+
+# 0 - parent index     = -1
+# 1 - parent char      = -1
+# 2 - exit             = -1
+# 3 - link             = -1
+# 4 - leaf             = []
+# 5 - next             = [-1] * 26
+# 6 - go               = [-1] * 26
+
+var p       = 0;
+var pchar   = 1;
+var exit    = 2;
+var link    = 3;
+var leaf    = 4;
+var next    = 5;
+var go      = 6;
+
+func add_node (p = -1, pchar = -1)
+{
+    t.push
+    ([
+        p, pchar,
+        -1, -1,
+        [],
+        [-1] * 26, [-1] * 26
+    ]);
+    
+    return t.len - 1;
+}
+
+add_node();
+
+var a = "a".codeOfChar(0);
+func order (s, i)
+{
+    return s.codeOfChar(i) - a;
+}
+
+func go () {}
+
+func link (cur)
+{
+    if (t[cur][link] === -1)
+    {
+        if (cur === 0 or t[cur][p] === 0)
+        {
+            t[cur][link] = 0;
+        }
+        else
+        {
+            t[cur][link] = go(link(t[cur][p]), t[cur][pchar]);
+        }
+    }
+    
+    return t[cur][link];
+}
+
+func go (cur, c)
+{
+    if (t[cur][go][c] === -1)
+    {
+        if (t[cur][next][c] === -1)
+        {
+            if (cur === 0)
+            {
+                t[cur][go][c] = 0;
+            }
+            else
+            {
+                t[cur][go][c] = go(link(cur), c);
+            }
+        }
+        else
+        {
+            t[cur][go][c] = t[cur][next][c];
+        }
+    }
+    
+    return t[cur][go][c];
+}
+
+func exit (cur)
+{
+    if (t[cur][exit] === -1)
+    {
+        if (cur === 0 or link(cur) === 0)
+        {
+            t[cur][exit] = 0;
+        }
+        else
+        {
+            if (t[link(cur)][leaf].len)
+            {
+                t[cur][exit] = link(cur);
+            }
+            else
+            {
+                t[cur][exit] = exit(link(cur));
+            }
+        }
+    }
+    
+    return t[cur][exit];
+}
+
+func add (word, index)
+{
+    var cur = 0;
+    
+    for (var i = 0; i < word.len; i += 1)
+    {
+        var ord = order(word, i);
+    
+        if (t[cur][next][ord] === -1)
+        {
+            t[cur][next][ord] = 
+            add_node(cur, ord);
+        }
+        
+        cur = t[cur][next][ord];
+    }
+    
+    t[cur][leaf].push(index);
+}
+
+func solve (text, words)
+{
+    var n = words.len;
+    var ans = [0] * n, count = [0] * t.len;
+    
+    var cur = 0;
+    for (var i = 0; i < text.len; i += 1)
+    {
+        cur = go(cur, order(text, i));
+        
+        count[cur] += 1;
+    }
+    
+    for (var cur = 0; cur < t.len; cur += 1)
+    {
+        if (count[cur])
+        {
+            for (var node = cur; node !== 0; node = exit(node))
+            {
+                for (var i = 0; i < t[node][leaf].len; i += 1)
+                {
+                    ans[t[node][leaf][i]] += count[cur];
+                }
+            }
+        }
+    }
+    
+    for (var i = 0; i < n; i += 1)
+    {
+        print(words[i] + ": \t" + ans[i] + "\n");
+    }
+}
+
+var words = 
+[
+    "a",
+    "aa",
+    "abc",
+    "abcde",
+    "bcd",
+    "ee",
+    "dba",
+    "cea",
+    "aedcb"
+];
+var text = "abcdeeaabcdcdeabcdacb";
+
+for (var i = 0; i < words.len; i += 1)
+{
+    add(words[i], i);
+}
+
+solve(text, words);
+
+#print(format(t));

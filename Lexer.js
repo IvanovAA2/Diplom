@@ -67,13 +67,15 @@ class Lexer
 
         "print",
         "input",
+        "format",
+        "clone",
 
         "len",
         "push",
         "pop",
         "split",
         "join",
-        "byteOfChar",
+        "codeOfChar",
         
         "if",
         "elif",
@@ -89,6 +91,7 @@ class Lexer
 
         "func",
 
+        "not",
         "or",
         "and",
     ]);
@@ -223,17 +226,17 @@ class Lexer
 
             if (this.#is_equal('#'))
             {
-                ++this.#position;
-                ++this.#column;
-
                 while (this.#is_equal('\n') === false) 
                 {
                     ++this.#position;
-                    ++this.#column;
+                    
+                    if (this.#position === this.#input.length)
+                    {
+                        break;
+                    }
                 }
-
-                ++this.#row;
-                this.#column = 0;
+                
+                continue;
             }
 
             if (this.#is_letter()) 

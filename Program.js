@@ -117,6 +117,8 @@ class Operation
         "/",
         "//",
         "%",
+        
+        "un-",
 
         "array_access",
         "slice",
@@ -126,10 +128,12 @@ class Operation
         "pop",
         "split",
         "join",
+        "codeOfChar",
 
         "print",
         "await",
         "input",
+        "format",
 
         "is_null",
         "is_bool",
@@ -188,7 +192,9 @@ class Visitor
         if (Visitor.VISIT_RULE.hasOwnProperty(NODE.rule_name))
         {
             // DEBUG
-            console.log(`${NODE.rule_name}`) 
+            
+            // console.log(`${NODE.rule_name}`) 
+            
             // DEBUG
             return Visitor.VISIT_RULE[NODE.rule_name](this, NODE, arg);
         }
@@ -256,7 +262,25 @@ class Program
             //     {
             //         if (OPERAND && OPERAND.hasOwnProperty("data"))
             //         {
-            //             text += `(${Data.DATA_NAME.get(OPERAND.type)}: ${OPERAND.data}) `;
+            //             if (OPERAND.type === Data.TYPEOF.string)
+            //             {
+            //                 text += `(${Data.DATA_NAME.get(OPERAND.type)}: "${OPERAND.data})" `;
+            //             }
+            //             else if (OPERAND.type === Data.TYPEOF.array)
+            //             {
+            //                 text += `(${Data.DATA_NAME.get(OPERAND.type)}: [`;
+                            
+            //                 for (const ELEMENT of OPERAND.data)
+            //                 {
+            //                     text += `${ELEMENT.data} `;
+            //                 }
+                            
+            //                 text += "\b] ";
+            //             }
+            //             else
+            //             {
+            //                 text += `(${Data.DATA_NAME.get(OPERAND.type)}: ${OPERAND.data}) `;
+            //             }
             //         }
             //         else
             //         {
@@ -288,7 +312,25 @@ class Program
             // {
             //     if (OPERAND && OPERAND.hasOwnProperty("data"))
             //     {
-            //         text += `(${Data.DATA_NAME.get(OPERAND.type)}: ${OPERAND.data}) `;
+            //         if (OPERAND.type === Data.TYPEOF.string)
+            //             {
+            //                 text += `(${Data.DATA_NAME.get(OPERAND.type)}: "${OPERAND.data})" `;
+            //             }
+            //             else if (OPERAND.type === Data.TYPEOF.array)
+            //             {
+            //                 text += `(${Data.DATA_NAME.get(OPERAND.type)}: [ `;
+                            
+            //                 for (const ELEMENT of OPERAND.data)
+            //                 {
+            //                     text += `${ELEMENT.data} `;
+            //                 }
+                            
+            //                 text += "] ";
+            //             }
+            //             else
+            //             {
+            //                 text += `(${Data.DATA_NAME.get(OPERAND.type)}: ${OPERAND.data}) `;
+            //             }
             //     }
             //     else
             //     {
@@ -487,7 +529,7 @@ function (visitor, node, arg)
             visitor,  
             get_operation("parameter"),
             [
-                get_variable(visitor, ID.name, ID.position),
+                get_variable(visitor, ID.string, ID.position),
                 visitor.visit(node, null, 2),
             ],
             null
@@ -1149,7 +1191,42 @@ function (visitor, node, arg)
         return RESULT;
     }
     
-    return visitor.visit(node, RESULT, 3)
+    return visitor.visit(node, RESULT, 3);
+}
+
+Visitor.VISIT_RULE["UnaryOp"] = 
+function (visitor, node, arg)
+{
+    const NAME      = name_of(node, 1);
+    const RESULT    = create_position(visitor);
+    const VALUE     = visitor.visit(node, null, 2);
+    
+    switch (NAME)
+    {
+        case "-":
+        {
+            create_operation(
+                visitor, 
+                get_operation("un-"), 
+                [RESULT, VALUE], 
+                get_position(node, 1)
+            );
+        }
+        break;
+        
+        case "not":
+        {
+            create_operation(
+                visitor, 
+                get_operation("not"), 
+                [RESULT, VALUE], 
+                get_position(node, 1)
+            );
+        }
+        break;
+    }
+    
+    return RESULT;
 }
 
 Visitor.VISIT_RULE["$Value"] = 
@@ -1193,25 +1270,135 @@ function (visitor, node, arg)
             visitor, 
             get_operation("array_access"),
             [ELEMENT, ARRAY, INDEX],
-            null
+            get_position(node, 1)
         );
 
         return ELEMENT;
     }
     if (length_is(node, 4))
     {
+        const SLICE     = create_position(visitor);
+        const SEQUENCE  = arg;
+        const BEGIN     = visitor.visit(node, null, 2);
+        const END       = visitor.visit(node, null, 3);
         
+        create_operation(
+            visitor, 
+            get_operation("array_access"),
+            [SLICE, SEQUENCE, BEGIN, END],
+            get_position(node, 1)
+        );
+
+        return SLICE;
     }
 }
 Visitor.VISIT_RULE["Slice"] = 
 function (visitor, node, arg)
 {
-    
+    return visitor.visit(node, null, 2);
 }
 Visitor.VISIT_RULE["MemberAccessing"] = 
 function (visitor, node, arg)
 {
+    const OBJECT    = arg;
+    const NAME      = name_of(node, 1); 
+    const POSITION  = get_position(node, 1); 
     
+    switch (NAME)
+    {
+        case "len":
+        {
+            const RESULT = create_position(visitor);
+            
+            create_operation(
+                visitor,
+                get_operation("len"),
+                [RESULT, OBJECT],
+                POSITION
+            );
+            
+            return RESULT;
+        }
+        break;
+        
+        case "push":
+        {
+            const VALUE = visitor.visit(node, null, 3);
+            
+            create_operation(
+                visitor,
+                get_operation("push"),
+                [OBJECT, VALUE],
+                POSITION
+            );
+            
+            return create_value(visitor, Data.TYPEOF.null, null);
+        }
+        break;
+        case "pop":
+        {
+            const RESULT = create_position(visitor);
+            
+            create_operation(
+                visitor,
+                get_operation("pop"),
+                [RESULT, OBJECT],
+                POSITION
+            );
+            
+            return RESULT;
+        }
+        break;
+        
+        case "split":
+        {
+            const ARRAY         = create_position(visitor);
+            const STRING        = OBJECT;
+            const DELIMETER     = visitor.visit(node, null, 3);
+            
+            create_operation(
+                visitor,
+                get_operation("split"),
+                [ARRAY, STRING, DELIMETER],
+                POSITION
+            );
+            
+            return ARRAY;
+        }
+        break;
+        case "join":
+        {
+            const STRING        = create_position(visitor);
+            const ARRAY         = OBJECT;
+            const DELIMETER     = visitor.visit(node, null, 3);
+            
+            create_operation(
+                visitor,
+                get_operation("join"),
+                [STRING, ARRAY, DELIMETER],
+                POSITION
+            );
+            
+            return STRING;
+        }
+        break;
+        
+        case "codeOfChar":
+        {
+            const RESULT    = create_position(visitor);
+            const INDEX     = visitor.visit(node, null, 3);
+            
+            create_operation(
+                visitor,
+                get_operation("codeOfChar"),
+                [RESULT, OBJECT, INDEX],
+                POSITION
+            );
+            
+            return RESULT;
+        }
+        break;
+    }
 }
 
 Visitor.VISIT_RULE["Value"] = 
@@ -1332,6 +1519,22 @@ function (visitor, node, arg)
             return INPUT;
         }
         break;
+        
+        case "format":
+        {
+            const RESULT    = create_position(visitor);
+            const VALUE     = visitor.visit(node, null, 3);
+
+            create_operation(
+                visitor, 
+                get_operation("format"), 
+                [RESULT, VALUE], 
+                get_position(node, 1)
+            );
+
+            return RESULT;
+        }
+        break;
     }
 }
 
@@ -1356,6 +1559,28 @@ function (visitor, node, arg)
     {
         visitor.visit(node, PARAMETERS, 3);
     }
+}
+Visitor.VISIT_RULE["ReverseParameters"] = 
+function (visitor, node, arg)
+{
+    const PARAMETERS = arg;
+    if (length_is(node, 2))
+    {
+        visitor.visit(node, PARAMETERS, 2);
+    }
+    
+    PARAMETERS.push(visitor.visit(node, null, 1));
+}
+Visitor.VISIT_RULE["$ReverseParameters"] = 
+function (visitor, node, arg)
+{
+    const PARAMETERS = arg;
+    if (length_is(node, 3))
+    {
+        visitor.visit(node, PARAMETERS, 3);
+    }
+    
+    PARAMETERS.push(visitor.visit(node, null, 2));
 }
 
 Visitor.VISIT_RULE["Null"] = 
@@ -1559,7 +1784,7 @@ Operation.OPERATION[Operation.TYPEOF["get_return"]] =
 function (program, operands)
 {
     const RESULT        = sget(program, operands[0]);
-    const RETURN_VALUE  = sget(program, program.return_value);
+    const RETURN_VALUE  = program.return_value;
     
     deallocate(program, RESULT);
     
@@ -1603,8 +1828,8 @@ function (program, operands)
 Operation.OPERATION[Operation.TYPEOF["="]] =
 function (program, operands)
 {
-    const OBJECT    = sget(program, operands[0]);
-    const VALUE     = sget(program, operands[1]);
+    const OBJECT    = operands[0];
+    const VALUE     = operands[1];
 
     allocate_from(program, OBJECT, VALUE);
 }
@@ -1677,13 +1902,28 @@ function (program, operands)
             evoke_error(program);
         }
         
-        var array = [];
+        const ARRAY = [];
         for (var i = 0; i < VALUE.data; i += 1)
         {
-            array.push(...OBJECT.data);
+            for (const ELEMENT of OBJECT.data)
+            {
+                const DREF      = sget(program, ELEMENT); 
+                const MIDPOINT  = new Data(Data.TYPEOF.null, null);
+                
+                allocate_from(program, MIDPOINT, DREF);
+                
+                ARRAY.push(MIDPOINT);
+                
+                program.heap[DREF.data].reference_count += 1;
+            }
         }
         
-        OBJECT.data = array;
+        allocate(
+            program,
+            OBJECT,
+            Data.TYPEOF.array, 
+            ARRAY
+        );
         
         return;
     }
@@ -1768,7 +2008,7 @@ function (program, operands)
         RIGHT.type !== Data.TYPEOF.bool
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
     
     allocate(
@@ -1791,7 +2031,7 @@ function (program, operands)
         RIGHT.type !== Data.TYPEOF.bool
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     allocate(
@@ -1815,7 +2055,7 @@ function (program, operands)
         RIGHT.type !== Data.TYPEOF.bool
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     allocate(
@@ -1838,7 +2078,7 @@ function (program, operands)
         RIGHT.type !== Data.TYPEOF.bool
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     allocate(
@@ -1861,7 +2101,7 @@ function (program, operands)
         RIGHT.type !== Data.TYPEOF.bool
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     allocate(
@@ -1883,7 +2123,7 @@ function (program, operands)
         RIGHT.type === Data.TYPEOF.array
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     allocate(
@@ -1904,7 +2144,7 @@ function (program, operands)
         RIGHT.type === Data.TYPEOF.array
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     allocate(
@@ -1925,7 +2165,7 @@ function (program, operands)
         RIGHT.type === Data.TYPEOF.array
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     allocate(
@@ -1946,7 +2186,7 @@ function (program, operands)
         RIGHT.type === Data.TYPEOF.array
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     allocate(
@@ -1970,7 +2210,7 @@ function (program, operands)
         RIGHT.type !== Data.TYPEOF.bool
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     allocate(
@@ -1993,7 +2233,7 @@ function (program, operands)
         RIGHT.type !== Data.TYPEOF.bool
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     allocate(
@@ -2016,7 +2256,7 @@ function (program, operands)
         RIGHT.type !== Data.TYPEOF.bool
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     allocate(
@@ -2039,7 +2279,7 @@ function (program, operands)
         RIGHT.type !== Data.TYPEOF.bool
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     allocate(
@@ -2063,7 +2303,7 @@ function (program, operands)
         RIGHT.type === Data.TYPEOF.array
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     if (LEFT.type === Data.TYPEOF.string ||
@@ -2100,7 +2340,7 @@ function (program, operands)
         RIGHT.type !== Data.TYPEOF.number
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     allocate(
@@ -2121,7 +2361,7 @@ function (program, operands)
     {
         if (RIGHT.type !== Data.TYPEOF.number)
         {
-            evoke_error(program);
+            evoke_error(program, 0);
         }
         
         allocate(
@@ -2137,20 +2377,30 @@ function (program, operands)
     {
         if (RIGHT.type !== Data.TYPEOF.number)
         {
-            evoke_error(program);
+            evoke_error(program, 0);
         }
         
-        var array = [];
+        const ARRAY = [];
         for (var i = 0; i < RIGHT.data; i += 1)
         {
-            array.push(...LEFT.data);
+            for (const ELEMENT of LEFT.data)
+            {
+                const DREF      = sget(program, ELEMENT); 
+                const MIDPOINT  = new Data(Data.TYPEOF.null, null);
+                
+                allocate_from(program, MIDPOINT, DREF);
+                
+                ARRAY.push(MIDPOINT);
+                
+                program.heap[DREF.data].reference_count += 1;
+            }
         }
         
         allocate(
             program,
             RESULT,
             Data.TYPEOF.array, 
-            array
+            ARRAY
         );
         
         return;
@@ -2162,7 +2412,7 @@ function (program, operands)
         VALUE.type !== Data.TYPEOF.bool
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     allocate(
@@ -2183,7 +2433,7 @@ function (program, operands)
         RIGHT.type !== Data.TYPEOF.number
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     allocate(
@@ -2204,7 +2454,7 @@ function (program, operands)
         RIGHT.type !== Data.TYPEOF.number
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     allocate(
@@ -2225,7 +2475,7 @@ function (program, operands)
         RIGHT.type !== Data.TYPEOF.number
     )
     {
-        evoke_error(program);
+        evoke_error(program, 0);
     }
 
     allocate(
@@ -2233,6 +2483,43 @@ function (program, operands)
         RESULT,
         Data.TYPEOF.number, 
         LEFT.data % RIGHT.data
+    );
+}
+
+Operation.OPERATION[Operation.TYPEOF["un-"]] =
+function (program, operands)
+{
+    const RESULT    = sget(program, operands[0]);
+    const VALUE     = get(program, operands[1]);
+
+    if (VALUE.type !== Data.TYPEOF.number)
+    {
+        evoke_error(program, 0);
+    }
+
+    allocate(
+        program,
+        RESULT,
+        Data.TYPEOF.number,
+        -VALUE.data
+    );
+}
+Operation.OPERATION[Operation.TYPEOF["not"]] =
+function (program, operands)
+{
+    const RESULT    = sget(program, operands[0]);
+    const VALUE     = get(program, operands[1]);
+
+    if (VALUE.type !== Data.TYPEOF.number)
+    {
+        evoke_error(program, 0);
+    }
+
+    allocate(
+        program,
+        RESULT,
+        Data.TYPEOF.bool,
+        ! to_bool(VALUE)
     );
 }
 
@@ -2253,45 +2540,213 @@ function (program, operands)
         INDEX.data >= ARRAY.data.length ||
         INDEX.data % 1 != 0)
     {
-        throw new Error(`trying to access float index or out of bounds`);
+        evoke_error_message(program, "trying to access float index or out of bounds");
     }
     
     const ELEMENT = ARRAY.data[INDEX.data];
     
     deallocate(program, RESULT);
-    RESULT.data = ELEMENT.data;
+    program.heap[ELEMENT.data].reference_count += 1;
+    
     RESULT.type = ELEMENT.type;
+    RESULT.data = ELEMENT.data;
 }
 Operation.OPERATION[Operation.TYPEOF["slice"]] =
 function (program, operands)
 {
-
+    const SLICE     = sget(program, operands[0]);
+    const SEQUENCE  = get(program, operands[1]);
+    const BEGIN     = get(program, operands[2]);
+    const END       = get(program, operands[3]);
+    
+    if (SEQUENCE.type !== Data.TYPEOF.string &&
+        SEQUENCE.type !== Data.TYPEOF.array ||
+        BEGIN.type !== Data.TYPEOF.number ||
+        END.type !== Data.TYPEOF.number
+    )
+    {
+        evoke_error(program, 0);
+    }
+    
+    if (SEQUENCE.type === Data.TYPEOF.string)
+    {
+        allocate(
+            program,
+            SLICE,
+            Data.TYPEOF.string,
+            SEQUENCE.data.slice(BEGIN.data, END.data)
+        );
+    }
+    if (SEQUENCE.type !== Data.TYPEOF.array)
+    {
+        const ARRAY = [];
+        
+        for (const ELEMENT of SEQUENCE.data.slice(BEGIN.data, END.data))
+        {
+            const DREF = program.heap[ELEMENT.data];
+            
+            ARRAY.push(new HeapData(Data.TYPEOF.null, null));
+            
+            allocate_from(
+                program,
+                ARRAY.at(-1),
+                DREF
+            );
+        }
+        
+        allocate(
+            program,
+            SLICE,
+            Data.TYPEOF.array,
+            ARRAY
+        );
+    }
 }
 
 Operation.OPERATION[Operation.TYPEOF["len"]] =
 function (program, operands)
 {
+    const RESULT    = sget(program, operands[0]);
+    const OBJECT    = get(program, operands[1]);
 
+    if (OBJECT.type !== Data.TYPEOF.string &&
+        OBJECT.type !== Data.TYPEOF.array
+    )
+    {
+        evoke_error(program, 0);
+    }
+
+    allocate(
+        program,
+        RESULT,
+        Data.TYPEOF.number, 
+        OBJECT.data.length
+    );
 }
 Operation.OPERATION[Operation.TYPEOF["push"]] =
 function (program, operands)
 {
+    const ARRAY    = get(program, operands[0]);
+    const VALUE     = operands[1];
 
+    if (ARRAY.type !== Data.TYPEOF.array)
+    {
+        evoke_error(program);
+    }
+
+    ARRAY.data.push(new HeapData(Data.TYPEOF.null, null));
+    const ELEMENT = ARRAY.data.at(-1);
+    
+    allocate_from(
+        program,
+        ELEMENT,
+        VALUE
+    );
 }
 Operation.OPERATION[Operation.TYPEOF["pop"]] =
 function (program, operands)
 {
-
+    const RESULT    = sget(program, operands[0]);
+    const ARRAY     = get(program, operands[1]);
+    
+    if (ARRAY.type !== Data.TYPEOF.array)
+    {
+        evoke_error(program);
+    }
+    if (ARRAY.data.length === 0)
+    {
+        evoke_error_message(program, "can't pop from empty array");
+    }
+    
+    deallocate(program, RESULT);
+    
+    const ELEMENT = program.heap[ARRAY.data.pop().data];
+    
+    RESULT.type = ELEMENT.type;
+    RESULT.data = ELEMENT.data;
 }
 Operation.OPERATION[Operation.TYPEOF["split"]] =
 function (program, operands)
 {
-
+    const RESULT        = sget(program, operands[0]);
+    const STRING        = get(program, operands[1]);
+    const DELIMETER     = get(program, operands[2]);
+    
+    if (STRING.type !== Data.TYPEOF.string ||
+        DELIMETER.type !== Data.TYPEOF.string 
+    )
+    {
+        evoke_error(program, 0);
+    }
+    
+    const ARRAY         = STRING.data.split(DELIMETER.data);
+    const RESULT_ARRAY  = [];
+    for (const ELEMENT of ARRAY)
+    {
+        const ENDPOINT = new Data(Data.TYPEOF.null, null);
+            
+        allocate(program, ENDPOINT, Data.TYPEOF.string, ELEMENT);
+        
+        RESULT_ARRAY.push(ENDPOINT);
+    }
+    
+    allocate(
+        program,
+        RESULT,
+        Data.TYPEOF.array, 
+        RESULT_ARRAY
+    );
 }
 Operation.OPERATION[Operation.TYPEOF["join"]] =
 function (program, operands)
 {
+    const RESULT        = sget(program, operands[0]);
+    const ARRAY         = get(program, operands[1]);
+    const DELIMETER     = get(program, operands[2]);
+    
+    if (ARRAY.type !== Data.TYPEOF.array ||
+        DELIMETER.type !== Data.TYPEOF.string
+    )
+    {
+        evoke_error(program, 0);
+    }
+    
+    var array = [];
+    for (const ELEMENT of ARRAY.data)
+    {
+        array.push(to_string(program, get(program, ELEMENT)));
+    }
+    
+    allocate(
+        program,
+        RESULT,
+        Data.TYPEOF.string, 
+        array.join(DELIMETER.data)
+    );
+}
+Operation.OPERATION[Operation.TYPEOF["codeOfChar"]] =
+function (program, operands)
+{
+    const RESULT    = sget(program, operands[0]);
+    const OBJECT    = get(program, operands[1]);
+    const INDEX     = get(program, operands[2]);
 
+    if (OBJECT.type !== Data.TYPEOF.string ||
+        INDEX.type !== Data.TYPEOF.number ||
+        INDEX.data % 1 !== 0 ||
+        INDEX.data < 0 ||
+        INDEX.data > OBJECT.data.length
+    )
+    {
+        evoke_error(program, 0);
+    }
+
+    allocate(
+        program,
+        RESULT,
+        Data.TYPEOF.number, 
+        OBJECT.data.charCodeAt(INDEX.data)
+    );
 }
 
 Operation.OPERATION[Operation.TYPEOF["print"]] =
@@ -2328,30 +2783,110 @@ function (program, operands)
     allocate(program, INPUT, Data.TYPEOF.string, get_input());
 }
 
+Operation.OPERATION[Operation.TYPEOF["format"]] =
+function (program, operands)
+{
+    const RESULT    = sget(program, operands[0]);
+    const VALUE     = get(program, operands[1]);
+    
+    allocate(
+        program,
+        RESULT,
+        Data.TYPEOF.string,
+        get_format(program, VALUE)
+    );
+}
+
+
 Operation.OPERATION[Operation.TYPEOF["is_null"]] =
 function (program, operands)
 {
+    const RESULT    = sget(program, operands[0]);
+    const VALUE     = get(program, operands[1]);
 
+    if (VALUE.type !== Data.TYPEOF.number)
+    {
+        evoke_error(program, 0);
+    }
+
+    allocate(
+        program,
+        RESULT,
+        Data.TYPEOF.bool,
+        VALUE.type === Data.TYPEOF.null
+    );
 }
 Operation.OPERATION[Operation.TYPEOF["is_bool"]] =
 function (program, operands)
 {
+    const RESULT    = sget(program, operands[0]);
+    const VALUE     = get(program, operands[1]);
 
+    if (VALUE.type !== Data.TYPEOF.number)
+    {
+        evoke_error(program, 0);
+    }
+
+    allocate(
+        program,
+        RESULT,
+        Data.TYPEOF.bool,
+        VALUE.type === Data.TYPEOF.bool
+    );
 }
 Operation.OPERATION[Operation.TYPEOF["is_number"]] =
 function (program, operands)
 {
+    const RESULT    = sget(program, operands[0]);
+    const VALUE     = get(program, operands[1]);
 
+    if (VALUE.type !== Data.TYPEOF.number)
+    {
+        evoke_error(program, 0);
+    }
+
+    allocate(
+        program,
+        RESULT,
+        Data.TYPEOF.bool,
+        VALUE.type === Data.TYPEOF.number
+    );
 }
 Operation.OPERATION[Operation.TYPEOF["is_string"]] =
 function (program, operands)
 {
+    const RESULT    = sget(program, operands[0]);
+    const VALUE     = get(program, operands[1]);
 
+    if (VALUE.type !== Data.TYPEOF.number)
+    {
+        evoke_error(program, 0);
+    }
+
+    allocate(
+        program,
+        RESULT,
+        Data.TYPEOF.bool,
+        VALUE.type === Data.TYPEOF.string
+    );
 }
 Operation.OPERATION[Operation.TYPEOF["is_array"]] =
 function (program, operands)
 {
+    const RESULT    = sget(program, operands[0]);
+    const VALUE     = get(program, operands[1]);
 
+    if (VALUE.type !== Data.TYPEOF.number)
+    {
+        evoke_error(program, 0);
+    }
+
+    allocate(
+        program,
+        RESULT,
+        Data.TYPEOF.bool,
+        VALUE.type === Data.TYPEOF.array
+    );
 }
 
 Operation.OPERATION[Operation.TYPEOF["to_bool"]] =
@@ -2364,18 +2899,34 @@ function (program, operands)
         program,
         RESULT,
         Data.TYPEOF.bool, 
-        to_bool(EXPRESSION)
+        to_bool(program, EXPRESSION)
     );
 }
 Operation.OPERATION[Operation.TYPEOF["to_number"]] =
 function (program, operands)
 {
+    const RESULT        = sget(program, operands[0]);
+    const EXPRESSION    = get(program, operands[1]);
 
+    allocate(
+        program,
+        RESULT,
+        Data.TYPEOF.number, 
+        to_number(program, EXPRESSION)
+    );
 }
 Operation.OPERATION[Operation.TYPEOF["to_string"]] =
 function (program, operands)
 {
+    const RESULT        = sget(program, operands[0]);
+    const EXPRESSION    = get(program, operands[1]);
 
+    allocate(
+        program,
+        RESULT,
+        Data.TYPEOF.string, 
+        to_string(program, EXPRESSION)
+    );
 }
 
 Operation.OPERATION[Operation.TYPEOF["exit"]] =
@@ -2383,11 +2934,13 @@ function (program, operands)
 {
     print(program, new Data(Data.TYPEOF.string, "\nExit value: "));
     print(program, program.return_value);
+    print(program, new Data(Data.TYPEOF.string, "\nRuntime: " + 
+    `${Math.round((program.overall_time + (performance.now() - program.time_start)) * 1000) / 1000}ms`))
 }
 
 
 
-function to_bool (object)
+function to_bool (program, object)
 {
     if (object.type === Data.TYPEOF.null)
     {
@@ -2410,10 +2963,60 @@ function to_bool (object)
         return object.data.length != 0;
     }
     
-    throw new Error(`Unknown type in "to_bool"`);
+    evoke_error_message(program, `unknown type in "to_bool"`);
+}
+function to_number (program, object)
+{
+    if (object.type === Data.TYPEOF.null)
+    {
+        return 0;
+    }
+    if (object.type === Data.TYPEOF.bool)
+    {
+        return Number(object.data);
+    }
+    if (object.type === Data.TYPEOF.number)
+    {
+        return object.data;
+    }
+    if (object.type === Data.TYPEOF.string)
+    {
+        return Number(object.data);
+    }
+    if (object.type === Data.TYPEOF.array)
+    {
+        evoke_error_message(program, "can't cast array to number");
+    }
+    
+    evoke_error_message(program, `unknown type in "to_number"`);
+}
+function to_string (program, object)
+{
+    if (object.type === Data.TYPEOF.null)
+    {
+        return "null";
+    }
+    if (object.type === Data.TYPEOF.bool)
+    {
+        return object.data ? "true" : "false";
+    }
+    if (object.type === Data.TYPEOF.number)
+    {
+        return String(object.data);
+    }
+    if (object.type === Data.TYPEOF.string)
+    {
+        return object.data;
+    }
+    if (object.type === Data.TYPEOF.array)
+    {
+        evoke_error_message(program, "can't cast array to string");
+    }
+    
+    evoke_error_message(program, `unknown type in "to_string"`);
 }
 
-function clone (program, object, value) // REDO
+function clone (program, object, value) 
 {
     
 }
@@ -2423,6 +3026,7 @@ function allocate (program, object, type, data)
     if (program.free_memory.size == 0)
     {
         var position = program.heap.length;
+        program.heap.push(null);
     }
     else
     {
@@ -2430,8 +3034,28 @@ function allocate (program, object, type, data)
 
         program.free_memory.delete(position);
     }
-
-    program.heap[position] = new HeapData(type, data);
+    
+    if (type === Data.TYPEOF.array)
+    {
+        const ARRAY = [];
+        for (const ELEMENT of data)
+        {
+            const DREF      = sget(program, ELEMENT); 
+            const MIDPOINT  = new Data(Data.TYPEOF.null, null);
+            
+            allocate(program, MIDPOINT, DREF.type, DREF.data);
+            
+            ARRAY.push(MIDPOINT);
+            
+            program.heap[DREF.data].reference_count += 1;
+        }
+        
+        program.heap[position] = new HeapData(type, ARRAY);
+    }
+    else 
+    {
+        program.heap[position] = new HeapData(type, data);
+    }
     
     deallocate(program, object);
 
@@ -2440,8 +3064,8 @@ function allocate (program, object, type, data)
 }
 function allocate_from (program, object, value)
 {
-    const OBJECT    = sget(program, object)
-    const POSITION  = sget(program, value);
+    const OBJECT    = pget(program, object)
+    const POSITION  = pget(program, value);
     const VALUE     = get(program, value);
     
     if (VALUE.type === Data.TYPEOF.string ||
@@ -2462,7 +3086,7 @@ function deallocate (program, object)
 {
     // DEBUG
     // console.log("DEALLOCATE", object);
-    //DEBUG
+    // DEBUG
     
     if (object.type === Data.TYPEOF.dref)
     {
@@ -2536,9 +3160,37 @@ function sget (program, object)
         const POSITION  = object.data;
         const OFFSET    = program.function_offset[POSITION[0]].at(-1);
 
-        return  sget(program, program.stack[OFFSET + POSITION[1]]);
+        return sget(program, program.stack[OFFSET + POSITION[1]]);
     }
 
+    return object;
+}
+function pget (program, object)
+{
+    var next_object = null;
+    
+    if (object.type === Data.TYPEOF.sref)
+    {
+        const POSITION  = object.data;
+        const OFFSET    = program.function_offset[POSITION[0]].at(-1);
+
+        next_object = program.stack[OFFSET + POSITION[1]];
+    }
+    if (object.type === Data.TYPEOF.dref)
+    {
+        const POSITION = object.data;
+
+        next_object = program.heap[POSITION];
+    }
+    
+    if (next_object !== null && 
+        (next_object.type === Data.TYPEOF.sref ||
+        next_object.type === Data.TYPEOF.dref)
+    )
+    {
+        return pget(program, next_object);
+    }
+    
     return object;
 }
 
@@ -2754,7 +3406,6 @@ function is_valid_index (array, index)
 }
 
 
-
 function print (program, object, stack = [])
 {
     const VALUE = get(program, object);
@@ -2820,6 +3471,46 @@ function print (program, object, stack = [])
     
     stack.pop();
 }
+function get_format (program, value, depth = 0)
+{
+    switch (value.type)
+    {
+        case Data.TYPEOF.null:
+        {
+            return ". ".repeat(depth) + "null";
+        }
+        break;
+        case Data.TYPEOF.bool:
+        {
+            return ". ".repeat(depth) + (value.data ? "true" : "false");
+        }
+        break;
+        case Data.TYPEOF.number:
+        {
+            return ". ".repeat(depth) + String(value.data);
+        }
+        break;
+        case Data.TYPEOF.string:
+        {
+            return ". ".repeat(depth) + `"${value.data}"`;
+        }
+        break;
+        case Data.TYPEOF.array:
+        {
+            var text = ". ".repeat(depth) + "[\n";
+            
+            for (const INDEX in value.data)
+            {
+                text += INDEX + ": " + get_format(program, get(program, value.data[INDEX]), depth + 1) + "\n";
+            }
+            
+            text += ". ".repeat(depth) + "]";
+            
+            return text;
+        }
+        break;
+    }
+}
 
 function evoke_error (program, except = -1)
 {
@@ -2843,6 +3534,18 @@ function evoke_error (program, except = -1)
         message += Data.DATA_NAME.get(get(program, OPERANDS[INDEX]).type);
     }
     message += `]`;
+    if (POSITION !== null)
+    {
+        message += ` at (${POSITION.row}, ${POSITION.column})`;
+    }
+
+    throw new Error(message);
+}
+function evoke_error_message (program, message)
+{
+    const OPERATION = program.operations[program.current_operation];
+    const POSITION  = OPERATION.position;
+
     if (POSITION !== null)
     {
         message += ` at (${POSITION.row}, ${POSITION.column})`;

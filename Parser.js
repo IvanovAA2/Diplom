@@ -306,10 +306,18 @@ class Parser
             ["%", "$Value", "$MulOp"],
             [NOP],
         ],
+        
+        
 
         $Value :
         [
             ["Value", "Accessing"],
+            ["UnaryOp"],
+        ],
+        UnaryOp :
+        [
+            ["-", "$Value"],
+            ["not", "$Value"],
         ],
         Accessing :
         [
@@ -333,7 +341,7 @@ class Parser
             ["pop",         "(", ")"],
             ["split",       "(", "Expression", ")"],
             ["join",        "(", "Expression", ")"],
-            ["byteOfChar",  "(", "Expression", ")"],
+            ["codeOfChar",  "(", "Expression", ")"],
         ],
 
         Value :
@@ -356,18 +364,21 @@ class Parser
         ],
         FunctionCall :
         [
-            ["(", "Parameters", ")"],
+            ["(", "ReverseParameters", ")"],
             [NOP],
         ],
         DefaultFunctionCall :
         [
-            ["print",       "(", "Parameters", ")"],
-            ["input",       "(", "$Expression", ")"],
             ["isNull",      "(", "Expression", ")"],
             ["isBool",      "(", "Expression", ")"],
             ["isNumber",    "(", "Expression", ")"],
             ["isString",    "(", "Expression", ")"],
             ["isArray",     "(", "Expression", ")"],
+            
+            ["print",       "(", "Parameters", ")"],
+            ["input",       "(", "$Expression", ")"],
+            ["format",      "(", "Expression", ")"],
+            ["clone",       "(", "Expression", ")"],
         ],
 
         Parameters :
@@ -378,6 +389,16 @@ class Parser
         $Parameters :
         [
             [",", "Expression", "$Parameters"],
+            [NOP],
+        ],
+        ReverseParameters :
+        [
+            ["Expression", "$ReverseParameters"],
+            [NOP],
+        ],
+        $ReverseParameters :
+        [
+            [",", "Expression", "$ReverseParameters"],
             [NOP],
         ],
 

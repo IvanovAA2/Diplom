@@ -1,0 +1,10 @@
+var a = [1, 2, 3];
+
+a.pop();
+print(a, "\n");
+
+a.pop();
+print(a, "\n");
+
+a.pop();
+print(a, "\n");
