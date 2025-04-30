@@ -1,0 +1,152 @@
+
+# однострочный комментарий 
+/*  многострочный 
+    комментарий */
+    
+# объявление переменных; значение по умолчанию - null
+var a, b = null, c = true, d = 3, e = "aba", f = [1, "str", null, c, [1, 2, 3]];
+# основные типы - null, bool, number, string, array; причём string и array передаются по ссылке
+
+# стандартные методы и функции
+
+# конвертация типов (исходное значение не меняется)
+string(123), number("123");
+
+# ввод и вывод
+var inp = input("подсказка в поле для ввода");
+print("Это результат в поле вывода: ", inp, "\n");
+var arr = [1, 2, 3];
+arr[2] = arr;
+println(arr);
+
+# форматирование в "красивый" вывод
+println(format([1, 2, [3, 4]]));
+
+# проверка типа - результат bool
+is_number(123), is_array([1, 2, 3]);
+
+# глубокое клонирование объекта
+clone([1, 2, [3, 4]]);
+
+# размер строки или массива
+"123".len, [1, 2, 3].len;
+
+# добавить элемент в конец массива, убрать из конца
+arr = [1, 2, 3];
+arr.push(4);
+arr.pop(); # возвращает значение
+
+# методы split и join
+var str = "12 34   5";
+arr = str.split(" ");
+println(arr);
+println(arr.join("X"));
+
+# codeOfChar возвращает код символа на i-й позиции в строке
+var s = "abc";
+s.codeOfChar(1);
+
+# операции
+/*
+    =, +=, -=, *=, /=, //=, %=
+    or, and
+    |, ^, &
+    ==, !=, ===, !==
+    <, >, <=, >=
+    +, -
+    *, /, //, %
+    унарный -, not
+    
+    операции доступа:
+    var arr = [1, 2, 3];
+    arr[1] = 4;
+    
+    срезы: object[l, r)
+    
+    arr[1, 2];
+    
+    var s = "1234567";
+    s[3, 6];
+*/
+
+# условные операторы
+
+a = 1, b = [];
+
+if (b)
+{
+    println("b: false");
+}
+elif (a)
+{
+    println("a: true");
+}
+else
+{
+    println("skip");
+}
+
+# циклы
+
+arr = [3] * 5; 
+var i = 0, sm = 0;
+
+while (i < arr.len and arr[i] === 3)
+{
+    sm += arr[i];
+    
+    i += 1;
+}
+
+println(sm);
+
+for (var i = 0; i < arr.len; i += 1)
+{
+    if (i === 2)
+    {
+        continue;
+    }
+    
+    arr[i] = i * i;
+    
+    if (i === 3)
+    {
+        break;
+    }
+}
+
+println(format(arr));
+
+# функции
+
+func foo (a, b, c = 1, d)
+{
+    println(a, " ", b, " ", c, " ", d);
+}
+
+println(foo(2));
+
+func f1 () {}
+
+func f2 (n)
+{
+    println("f2 ", n);
+    
+    if (n)
+    {
+        f1(n - 1);
+    }
+}
+
+func f1 (n)
+{
+    println("f1 ", n);
+    
+    if (n)
+    {
+        f2(n - 1);
+    }
+}
+
+f1(5);
+ 

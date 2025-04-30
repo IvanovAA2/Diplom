@@ -45,7 +45,7 @@ class Parser
                 Parser.#build_ast(RULE_NAME);
             }
 
-            console.log(Parser.#ast);
+            // console.log(Parser.#ast);
         }
     }
 
@@ -369,13 +369,14 @@ class Parser
         ],
         DefaultFunctionCall :
         [
-            ["isNull",      "(", "Expression", ")"],
-            ["isBool",      "(", "Expression", ")"],
-            ["isNumber",    "(", "Expression", ")"],
-            ["isString",    "(", "Expression", ")"],
-            ["isArray",     "(", "Expression", ")"],
+            ["is_null",      "(", "Expression", ")"],
+            ["is_bool",      "(", "Expression", ")"],
+            ["is_number",    "(", "Expression", ")"],
+            ["is_string",    "(", "Expression", ")"],
+            ["is_array",     "(", "Expression", ")"],
             
             ["print",       "(", "Parameters", ")"],
+            ["println",     "(", "Parameters", ")"],
             ["input",       "(", "$Expression", ")"],
             ["format",      "(", "Expression", ")"],
             ["clone",       "(", "Expression", ")"],

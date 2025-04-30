@@ -1,0 +1,34 @@
+func left_false ()
+{
+    print("left_false\n");
+    
+    return false;
+}
+func left_true ()
+{
+    print("left_true\n");
+    
+    return true;
+}
+func right_false ()
+{
+    print("right_false\n");
+    
+    return false;
+}
+func right_true ()
+{
+    print("right_true\n");
+    
+    return true;
+}
+
+print("false and false: ", left_false() and right_false(), "\n");
+print("false and true: ", left_false() and right_true(), "\n");
+print("true and false: ", left_true() and right_false(), "\n");
+print("true and true: ", left_true() and right_true(), "\n");
+
+print("false or false: ", left_false() or right_false(), "\n");
+print("false or true: ", left_false() or right_true(), "\n");
+print("true or false: ", left_true() or right_false(), "\n");
+print("true or true: ", left_true() or right_true(), "\n");

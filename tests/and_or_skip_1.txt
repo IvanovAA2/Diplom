@@ -1,0 +1,22 @@
+
+var arr = [1, 2, 3, 4, 5], sm = 0;
+
+var i = 0;
+while (i < arr.len and arr[i] < 10)
+{
+    sm += arr[i];
+    
+    i += 1;
+}
+
+print(sm, "\n");
+
+i = 0, sm = 0;
+while (not (i == arr.len or arr[i] >= 10))
+{
+    sm += arr[i];
+    
+    i += 1;
+}
+
+print(sm);

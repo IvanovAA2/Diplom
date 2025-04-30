@@ -153,7 +153,7 @@ func solve (text, words)
     
     for (var i = 0; i < n; i += 1)
     {
-        print(words[i] + ": \t" + ans[i] + "\n");
+        println(words[i] + ": \t" + ans[i]);
     }
 }
 

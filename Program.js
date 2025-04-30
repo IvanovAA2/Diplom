@@ -81,6 +81,7 @@ class Operation
         "get_return",
 
         "if",
+        "ifn",
         "jump",
 
         "create",
@@ -119,6 +120,7 @@ class Operation
         "%",
         
         "un-",
+        "not",
 
         "array_access",
         "slice",
@@ -131,9 +133,11 @@ class Operation
         "codeOfChar",
 
         "print",
+        "println",
         "await",
         "input",
         "format",
+        "clone",
 
         "is_null",
         "is_bool",
@@ -843,12 +847,9 @@ function (visitor, node, arg)
 Visitor.VISIT_RULE["$Expressions"] =
 function (visitor, node, arg)
 {
-    if (length_is(node, 2))
-    {
-        visitor.visit(node, null, 2);
-    }
     if (length_is(node, 3))
     {
+        visitor.visit(node, null, 2);
         visitor.visit(node, null, 3);
     }
 }
@@ -908,11 +909,22 @@ function (visitor, node, arg)
 {
     const RESULT    = create_position(visitor);
     const LEFT      = arg;
-    const RIGHT     = visitor.visit(node, null, 2);
+    
+    const JUMP = create_operation(
+        visitor, 
+        get_operation("ifn"), 
+        [LEFT, new Data(Data.TYPEOF.jump, null)], 
+        get_position(node, 1)
+    );
+    
+    const RIGHT = visitor.visit(node, null, 2);
+    
+    visitor.operations[JUMP].operands[1].data = 
+    next_operation(visitor);
 
     create_operation(
         visitor, 
-        get_operation(node, 1), 
+        get_operation("or"), 
         [RESULT, LEFT, RIGHT], 
         get_position(node, 1)
     );
@@ -922,7 +934,7 @@ function (visitor, node, arg)
         return RESULT;
     }
     
-    return visitor.visit(node, RESULT, 3)
+    return visitor.visit(node, RESULT, 3);
 }
 Visitor.VISIT_RULE["BoolAnd"] = 
 function (visitor, node, arg)
@@ -941,11 +953,22 @@ function (visitor, node, arg)
 {
     const RESULT    = create_position(visitor);
     const LEFT      = arg;
-    const RIGHT     = visitor.visit(node, null, 2);
+    
+    const JUMP = create_operation(
+        visitor, 
+        get_operation("if"), 
+        [LEFT, new Data(Data.TYPEOF.jump, null)], 
+        get_position(node, 1)
+    );
+    
+    const RIGHT = visitor.visit(node, null, 2);
+    
+    visitor.operations[JUMP].operands[1].data = 
+    next_operation(visitor);
 
     create_operation(
         visitor, 
-        get_operation(node, 1), 
+        get_operation("and"), 
         [RESULT, LEFT, RIGHT], 
         get_position(node, 1)
     );
@@ -955,7 +978,7 @@ function (visitor, node, arg)
         return RESULT;
     }
     
-    return visitor.visit(node, RESULT, 3)
+    return visitor.visit(node, RESULT, 3);
 }
 
 Visitor.VISIT_RULE["BitOr"] = 
@@ -1472,6 +1495,82 @@ function (visitor, node, arg)
 
     switch (NAME)
     {
+        case "is_null":
+        {
+            const RESULT    = create_position(visitor);
+            const VALUE     = visitor.visit(node, null, 3);
+
+            create_operation(
+                visitor, 
+                get_operation("is_null"), 
+                [RESULT, VALUE], 
+                get_position(node, 1)
+            );
+
+            return RESULT;
+        }
+        break;
+        case "is_bool":
+        {
+            const RESULT    = create_position(visitor);
+            const VALUE     = visitor.visit(node, null, 3);
+
+            create_operation(
+                visitor, 
+                get_operation("is_bool"), 
+                [RESULT, VALUE], 
+                get_position(node, 1)
+            );
+
+            return RESULT;
+        }
+        break;
+        case "is_number":
+        {
+            const RESULT    = create_position(visitor);
+            const VALUE     = visitor.visit(node, null, 3);
+
+            create_operation(
+                visitor, 
+                get_operation("is_number"), 
+                [RESULT, VALUE], 
+                get_position(node, 1)
+            );
+
+            return RESULT;
+        }
+        break;
+        case "is_string":
+        {
+            const RESULT    = create_position(visitor);
+            const VALUE     = visitor.visit(node, null, 3);
+
+            create_operation(
+                visitor, 
+                get_operation("is_string"), 
+                [RESULT, VALUE], 
+                get_position(node, 1)
+            );
+
+            return RESULT;
+        }
+        break;
+        case "is_array":
+        {
+            const RESULT    = create_position(visitor);
+            const VALUE     = visitor.visit(node, null, 3);
+
+            create_operation(
+                visitor, 
+                get_operation("is_array"), 
+                [RESULT, VALUE], 
+                get_position(node, 1)
+            );
+
+            return RESULT;
+        }
+        break;
+        
         case "print":
         {
             const PARAMETERS = [];
@@ -1484,6 +1583,25 @@ function (visitor, node, arg)
             create_operation(
                 visitor, 
                 get_operation("print"), 
+                PARAMETERS, 
+                get_position(node, 1)
+            );
+
+            return create_value(visitor, Data.TYPEOF.null, null);
+        }
+        break;
+        case "println":
+        {
+            const PARAMETERS = [];
+
+            if (length_is(node, 4))
+            {
+                visitor.visit(node, PARAMETERS, 3);
+            }
+
+            create_operation(
+                visitor, 
+                get_operation("println"), 
                 PARAMETERS, 
                 get_position(node, 1)
             );
@@ -1528,6 +1646,22 @@ function (visitor, node, arg)
             create_operation(
                 visitor, 
                 get_operation("format"), 
+                [RESULT, VALUE], 
+                get_position(node, 1)
+            );
+
+            return RESULT;
+        }
+        break;
+        
+        case "clone":
+        {
+            const RESULT    = create_position(visitor);
+            const VALUE     = visitor.visit(node, null, 3);
+
+            create_operation(
+                visitor, 
+                get_operation("clone"), 
                 [RESULT, VALUE], 
                 get_position(node, 1)
             );
@@ -1803,6 +1937,17 @@ function (program, operands)
         program.current_operation = JUMP.data - 1;
     }
 }
+Operation.OPERATION[Operation.TYPEOF["ifn"]] =
+function (program, operands)
+{
+    const BOOL_EXPRESSION   = get(program, operands[0]);
+    const JUMP              = get(program, operands[1]);
+    
+    if (BOOL_EXPRESSION.data === true)
+    {
+        program.current_operation = JUMP.data - 1;
+    }
+}
 Operation.OPERATION[Operation.TYPEOF["jump"]] =
 function (program, operands)
 {
@@ -2001,22 +2146,25 @@ function (program, operands)
     const RESULT    = sget(program, operands[0]);
     const LEFT      = get(program, operands[1]);
     const RIGHT     = get(program, operands[2]);
-
-    if (LEFT.type !== Data.TYPEOF.number &&
-        LEFT.type !== Data.TYPEOF.bool ||
-        RIGHT.type !== Data.TYPEOF.number &&
-        RIGHT.type !== Data.TYPEOF.bool
-    )
-    {
-        evoke_error(program, 0);
-    }
     
-    allocate(
-        program,
-        RESULT,
-        Data.TYPEOF.bool, 
-        LEFT.data || RIGHT.data
-    );
+    if (to_bool(program, LEFT) === true)
+    {
+        allocate(
+            program,
+            RESULT,
+            Data.TYPEOF.bool, 
+            true
+        );
+    }
+    else
+    {
+        allocate(
+            program,
+            RESULT,
+            Data.TYPEOF.bool, 
+            to_bool(program, RIGHT)
+        );
+    }
 }
 Operation.OPERATION[Operation.TYPEOF["and"]] =
 function (program, operands)
@@ -2025,21 +2173,24 @@ function (program, operands)
     const LEFT      = get(program, operands[1]);
     const RIGHT     = get(program, operands[2]);
 
-    if (LEFT.type !== Data.TYPEOF.number &&
-        LEFT.type !== Data.TYPEOF.bool ||
-        RIGHT.type !== Data.TYPEOF.number &&
-        RIGHT.type !== Data.TYPEOF.bool
-    )
+    if (to_bool(program, LEFT) === false)
     {
-        evoke_error(program, 0);
+        allocate(
+            program,
+            RESULT,
+            Data.TYPEOF.bool, 
+            false
+        );
     }
-
-    allocate(
-        program,
-        RESULT,
-        Data.TYPEOF.bool, 
-        LEFT.data && RIGHT.data
-    );
+    else
+    {
+        allocate(
+            program,
+            RESULT,
+            Data.TYPEOF.bool, 
+            to_bool(program, RIGHT)
+        );
+    }
 }
 
 Operation.OPERATION[Operation.TYPEOF["|"]] =
@@ -2406,10 +2557,10 @@ function (program, operands)
         return;
     }
 
-    if (OBJECT.type !== Data.TYPEOF.number &&
-        OBJECT.type !== Data.TYPEOF.bool ||
-        VALUE.type !== Data.TYPEOF.number &&
-        VALUE.type !== Data.TYPEOF.bool
+    if (LEFT.type !== Data.TYPEOF.number &&
+        LEFT.type !== Data.TYPEOF.bool ||
+        RIGHT.type !== Data.TYPEOF.number &&
+        RIGHT.type !== Data.TYPEOF.bool
     )
     {
         evoke_error(program, 0);
@@ -2509,17 +2660,12 @@ function (program, operands)
 {
     const RESULT    = sget(program, operands[0]);
     const VALUE     = get(program, operands[1]);
-
-    if (VALUE.type !== Data.TYPEOF.number)
-    {
-        evoke_error(program, 0);
-    }
-
+    
     allocate(
         program,
         RESULT,
         Data.TYPEOF.bool,
-        ! to_bool(VALUE)
+        ! to_bool(program, VALUE)
     );
 }
 
@@ -2757,6 +2903,16 @@ function (program, operands)
         print(program, ELEMENT);
     }
 }
+Operation.OPERATION[Operation.TYPEOF["println"]] =
+function (program, operands)
+{
+    for (const ELEMENT of operands)
+    {
+        print(program, ELEMENT);
+    }
+    
+    print(program, new Data(Data.TYPEOF.string, "\n"));
+}
 Operation.OPERATION[Operation.TYPEOF["await"]] =
 function (program, operands)
 {
@@ -2797,17 +2953,25 @@ function (program, operands)
     );
 }
 
+Operation.OPERATION[Operation.TYPEOF["clone"]] =
+function (program, operands)
+{
+    const RESULT    = sget(program, operands[0]);
+    const VALUE     = get(program, operands[1]);
+    
+    clone(
+        program,
+        RESULT,
+        VALUE
+    );
+}
+
 
 Operation.OPERATION[Operation.TYPEOF["is_null"]] =
 function (program, operands)
 {
     const RESULT    = sget(program, operands[0]);
     const VALUE     = get(program, operands[1]);
-
-    if (VALUE.type !== Data.TYPEOF.number)
-    {
-        evoke_error(program, 0);
-    }
 
     allocate(
         program,
@@ -2822,11 +2986,6 @@ function (program, operands)
     const RESULT    = sget(program, operands[0]);
     const VALUE     = get(program, operands[1]);
 
-    if (VALUE.type !== Data.TYPEOF.number)
-    {
-        evoke_error(program, 0);
-    }
-
     allocate(
         program,
         RESULT,
@@ -2839,11 +2998,6 @@ function (program, operands)
 {
     const RESULT    = sget(program, operands[0]);
     const VALUE     = get(program, operands[1]);
-
-    if (VALUE.type !== Data.TYPEOF.number)
-    {
-        evoke_error(program, 0);
-    }
 
     allocate(
         program,
@@ -2858,11 +3012,6 @@ function (program, operands)
     const RESULT    = sget(program, operands[0]);
     const VALUE     = get(program, operands[1]);
 
-    if (VALUE.type !== Data.TYPEOF.number)
-    {
-        evoke_error(program, 0);
-    }
-
     allocate(
         program,
         RESULT,
@@ -2875,11 +3024,6 @@ function (program, operands)
 {
     const RESULT    = sget(program, operands[0]);
     const VALUE     = get(program, operands[1]);
-
-    if (VALUE.type !== Data.TYPEOF.number)
-    {
-        evoke_error(program, 0);
-    }
 
     allocate(
         program,
@@ -3018,7 +3162,43 @@ function to_string (program, object)
 
 function clone (program, object, value) 
 {
+    if (program.free_memory.size == 0)
+    {
+        var position = program.heap.length;
+        program.heap.push(null);
+    }
+    else
+    {
+        var position = program.free_memory.values().next().value;
+
+        program.free_memory.delete(position);
+    }
     
+    if (value.type === Data.TYPEOF.array)
+    {
+        const ARRAY = [];
+        for (const ELEMENT of value.data)
+        {
+            const ENDPOINT  = new Data(Data.TYPEOF.null, null);
+            const MIDPOINT  = new Data(Data.TYPEOF.null, null);
+            
+            clone(program, ENDPOINT, get(program, ELEMENT));
+            allocate(program, MIDPOINT, ENDPOINT.type, ENDPOINT.data);
+            
+            ARRAY.push(MIDPOINT);
+        }
+        
+        program.heap[position] = new HeapData(Data.TYPEOF.array, ARRAY);
+    }
+    else 
+    {
+        program.heap[position] = new HeapData(value.type, value.data);
+    }
+    
+    deallocate(program, object);
+
+    object.type = Data.TYPEOF.dref;
+    object.data = position;
 }
 
 function allocate (program, object, type, data)

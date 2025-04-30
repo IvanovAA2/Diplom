@@ -59,13 +59,14 @@ class Lexer
         "number",
         "string",
 
-        "isNull",
-        "isBool",
-        "isNumber",
-        "isString",
-        "isArray",
+        "is_null",
+        "is_bool",
+        "is_number",
+        "is_string",
+        "is_array",
 
         "print",
+        "println",
         "input",
         "format",
         "clone",
@@ -230,11 +231,27 @@ class Lexer
                 {
                     ++this.#position;
                     
-                    if (this.#position === this.#input.length)
+                    if (this.#position >= this.#input.length)
                     {
                         break;
                     }
                 }
+                
+                continue;
+            }
+            if (this.#is_equal('/') && this.#next_is_equal('*'))
+            {
+                while (! (this.#is_equal('*') && this.#next_is_equal('/'))) 
+                {
+                    ++this.#position;
+                    
+                    if (this.#position === this.#input.length)
+                    {
+                        throw new Error("multiline comment wasn't closed");
+                    }
+                }
+                
+                this.#position += 2;
                 
                 continue;
             }
