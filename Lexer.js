@@ -47,9 +47,9 @@ class Lexer
         "true",
         "false",
         "number",
-        "numberToken",
+        "number_token",
         "string",
-        "stringToken",
+        "string_token",
         "array",
 
         "set",
@@ -301,7 +301,7 @@ class Lexer
                         ++this.#column;
                     }
                 }
-                tokens.push(new Token(this.verify_token("numberToken"), number, BEGIN_ROW, BEGIN_COLUMN));
+                tokens.push(new Token(this.verify_token("number_token"), number, BEGIN_ROW, BEGIN_COLUMN));
                 
                 continue;
             }
@@ -345,7 +345,7 @@ class Lexer
 
                 ++this.#column;
                 ++this.#position
-                tokens.push(new Token(this.verify_token("stringToken"), string, BEGIN_ROW, BEGIN_COLUMN));
+                tokens.push(new Token(this.verify_token("string_token"), string, BEGIN_ROW, BEGIN_COLUMN));
                 
                 continue;
             }

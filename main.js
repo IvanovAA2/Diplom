@@ -56,13 +56,9 @@ function clearOutput ()
     inputStream.placeholder = "";
 }
 
-function addOutput (text, new_line = false)
+function addOutput (text)
 {
     programOutput.value += text;
-    if (new_line) 
-    {
-        programOutput.value += "\n";
-    }
 }
 
 runButton.addEventListener('click', function() 
@@ -102,79 +98,92 @@ function get_input ()
     return text;
 }
 
+function precision (number, digits = 3)
+{
+    return Math.trunc(number * Math.pow(10, digits)) / Math.pow(10, digits);
+}
+
 function run(input) 
 {
-    // var sm = 0, i = 1, j, n = 1000;
-    // var start = performance.now();
-    // for (var i = 1; i <= n; i += 1)
-    // {
-    //     for (var j = 1; j <= n; j += 1)
-    //     {
-    //         sm += 1 / (i * j);
-    //     }
-    // }
-    // console.log(sm);
-    // console.log(performance.now() - start);
-
-
-    
     // console.log("Running:\n" + input);
     clearOutput();
+    
+    
+    
+    var sm = 0, i = 1, j, n = 1000;
+    var start = performance.now();
+    for (var i = 1; i <= n; i += 1)
+    {
+        for (var j = 1; j <= n; j += 1)
+        {
+            sm += 1 / i / j;
+        }
+    }
+    addOutput(`n = 1000:\nsum: ${sm}\ntime: ${precision(performance.now() - start)}ms\n\n`);
+    var sm = 0, i = 1, j, n = 10000;
+    var start = performance.now();
+    for (var i = 1; i <= n; i += 1)
+    {
+        for (var j = 1; j <= n; j += 1)
+        {
+            sm += 1 / i / j;
+        }
+    }
+    addOutput(`n = 10000:\nsum: ${sm}\ntime: ${precision(performance.now() - start)}ms\n\n`);
 
 
+    // lexer = new Lexer(input);
+    // tokens = lexer.get_tokens();
 
-    lexer = new Lexer(input);
-    tokens = lexer.get_tokens();
+    // // console.log(tokens);
 
-    // console.log(tokens);
+    // parser = new Parser(tokens);
+    // parse_tree = parser.parse();
 
-    parser = new Parser(tokens);
-    parse_tree = parser.parse();
+    // // console.log(parse_tree);
 
-    // console.log(parse_tree);
-
-    program = new Program(parse_tree);
-    program.run();
+    // program = new Program(parse_tree);
+    // program.run();
 
 
     
-    // try
-    // {
-    //     lexer = new Lexer(input);
-    //     tokens = lexer.get_tokens();
-    // }
-    // catch (error)
-    // {
-    //     addOutput("Lexical error: " + error.message, true);
-    //     return;
-    // }
+    try
+    {
+        lexer = new Lexer(input);
+        tokens = lexer.get_tokens();
+    }
+    catch (error)
+    {
+        addOutput("Lexical error: " + error.message, true);
+        return;
+    }
     
-    // try
-    // {
-    //     // console.log(tokens);
+    try
+    {
+        // console.log(tokens);
         
-    //     parser = new Parser(tokens);
-    //     parse_tree = parser.parse();
+        parser = new Parser(tokens);
+        parse_tree = parser.parse();
         
-    //     // console.log(parse_tree);
+        // console.log(parse_tree);
         
-    //     program = new Program(parse_tree);
-    // }
-    // catch (error)
-    // {
-    //     addOutput("Semantic error: " + error.message, true);
-    //     return;
-    // }
+        program = new Program(parse_tree);
+    }
+    catch (error)
+    {
+        addOutput("Semantic error: " + error.message, true);
+        return;
+    }
     
-    // try
-    // {
-    //     program.run();
-    // }
-    // catch (error)
-    // {
-    //     addOutput("Runtime error: " + error.message, true);
-    //     return;
-    // }
+    try
+    {
+        program.run();
+    }
+    catch (error)
+    {
+        addOutput("Runtime error: " + error.message, true);
+        return;
+    }
 
     // console.log(`time: ${Math.round(program.overall_time * 1000) / 1000}ms`);
 }

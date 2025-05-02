@@ -1778,7 +1778,7 @@ function (visitor, node, arg)
 
     return RESULT;
 }
-Visitor.VISIT_RULE["numberToken"] = 
+Visitor.VISIT_RULE["number_token"] = 
 function (visitor, node, arg)
 {
     return create_value(visitor, Data.TYPEOF.number, Number(node.children.string));
@@ -1803,7 +1803,7 @@ function (visitor, node, arg)
 
     return RESULT;
 }
-Visitor.VISIT_RULE["stringToken"] = 
+Visitor.VISIT_RULE["string_token"] = 
 function (visitor, node, arg)
 {
     return create_value(visitor, Data.TYPEOF.string, node.children.string);
@@ -3079,7 +3079,7 @@ function (program, operands)
     print(program, new Data(Data.TYPEOF.string, "\nExit value: "));
     print(program, program.return_value);
     print(program, new Data(Data.TYPEOF.string, "\nRuntime: " + 
-    `${Math.round((program.overall_time + (performance.now() - program.time_start)) * 1000) / 1000}ms`))
+    `${precision(program.overall_time + (performance.now() - program.time_start))}ms`))
 }
 
 

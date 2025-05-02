@@ -416,13 +416,13 @@ class Parser
         ],
         Number :
         [
-            ["numberToken"],
+            ["number_token"],
 
             ["number", "(", "Expression", ")"],
         ],
         String :
         [
-            ["stringToken"],
+            ["string_token"],
 
             ["string", "(", "Expression", ")"],
         ],
