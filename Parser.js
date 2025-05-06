@@ -72,10 +72,37 @@ class Parser
             ["Function"],
 
             ["FlowControl"],
+            
+            ["Class"],
         ],
         Scope :
         [
             ["{", "Statements", "}"],
+        ],
+        
+        Class :
+        [
+            ["class", "{", "ClassStatements", "}"],  
+        ],
+        ClassStatements :
+        [
+            ["ClassStatement", "ClassStatements"],
+            [NOP],  
+        ],
+        ClassStatement :
+        [
+            ["ClassField"],
+            ["ClassMember"],
+            ["AccessSpecifier"],
+        ],
+        Constructor :
+        [
+            ["constructor", "(", "FunctionParameters", ")", "ConstructorScope"],
+        ],
+        AccessSpecifier :
+        [
+            ["public"],  
+            ["private"],  
         ],
 
         Function :
@@ -380,6 +407,7 @@ class Parser
             ["input",       "(", "$Expression", ")"],
             ["format",      "(", "Expression", ")"],
             ["clone",       "(", "Expression", ")"],
+            ["rand",        "(", ")"],
         ],
 
         Parameters :

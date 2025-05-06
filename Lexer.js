@@ -70,6 +70,7 @@ class Lexer
         "input",
         "format",
         "clone",
+        "rand",
 
         "len",
         "push",
@@ -91,6 +92,10 @@ class Lexer
         "return",
 
         "func",
+        
+        "class",
+        "public",
+        "private",
 
         "not",
         "or",
@@ -118,6 +123,10 @@ class Lexer
         "/",
         "//",
         "%",
+        
+        "&",
+        "|",
+        "^",
 
         "=",
         "+=",
@@ -480,11 +489,11 @@ class Lexer
                 break;
 
                 case '|':
-                    tokens.push(new Token(this.verify_token("&"), "&", BEGIN_ROW, BEGIN_COLUMN));
+                    tokens.push(new Token(this.verify_token("|"), "|", BEGIN_ROW, BEGIN_COLUMN));
                 break;
 
                 case '^':
-                    tokens.push(new Token(this.verify_token("&"), "&", BEGIN_ROW, BEGIN_COLUMN));
+                    tokens.push(new Token(this.verify_token("^"), "^", BEGIN_ROW, BEGIN_COLUMN));
                 break;
 
                 case '=':
