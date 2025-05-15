@@ -1,0 +1,20 @@
+class A
+{
+    a = [0] * 10;
+    b;
+    constructor (x)
+    {
+        this.b = x * x;
+        this.a[1] = this.b;
+    }
+    a (b)
+    {
+        for (var i = 0; i < len(this.a); i += 1)
+        {
+            this.a[i] = b + i;
+        }
+    }
+}
+var a = new A(10);
+a.a(67);
+println(format(a));

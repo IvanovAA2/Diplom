@@ -1,0 +1,17 @@
+class A
+{
+    foo = 1;
+    constructor ()
+    {
+        this.foo = 2;
+    }
+    bar (x)
+    {
+        println(x + this.foo);
+        
+        return "bar";
+    }
+}
+var a = new A();
+println(a.foo);
+println(a.bar(10));

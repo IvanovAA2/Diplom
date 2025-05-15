@@ -1,0 +1,6 @@
+var s = "abcABC123$ ";
+
+for (var i = 0; i < len(s); i += 1)
+{
+    println(code_of_char(s, i));
+}

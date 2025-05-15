@@ -82,7 +82,7 @@ class Parser
         
         Class :
         [
-            ["class", "{", "ClassStatements", "}"],  
+            ["class", "id", "{", "ClassStatements", "}"],  
         ],
         ClassStatements :
         [
@@ -91,18 +91,44 @@ class Parser
         ],
         ClassStatement :
         [
-            ["ClassField"],
+            ["Constructor"],
+            // ["AccessSpecifier"],
             ["ClassMember"],
-            ["AccessSpecifier"],
         ],
         Constructor :
         [
-            ["constructor", "(", "FunctionParameters", ")", "ConstructorScope"],
+            ["constructor", "(", "FunctionParameters", ")", "Scope"],
         ],
-        AccessSpecifier :
+        // AccessSpecifier :
+        // [
+        //     ["Public"],  
+        //     ["Private"],  
+        // ],
+        // Public :
+        // [
+        //     ["public", ":"],
+        // ],
+        // Private :
+        // [
+        //     ["private", ":"],
+        // ],
+        ClassMember :
         [
-            ["public"],  
-            ["private"],  
+            ["id", "$ClassMember"],  
+        ],
+        $ClassMember :
+        [
+            ["ClassField"],
+            ["ClassMethod"],
+        ],
+        ClassField :
+        [
+            ["=", "Expression", ";"],
+            [";"],
+        ],
+        ClassMethod :
+        [
+            ["(", "FunctionParameters", ")", "Scope"],
         ],
 
         Function :
@@ -363,12 +389,12 @@ class Parser
         ],
         MemberAccessing :
         [
-            ["len"],
-            ["push",        "(", "Expression", ")"],
-            ["pop",         "(", ")"],
-            ["split",       "(", "Expression", ")"],
-            ["join",        "(", "Expression", ")"],
-            ["codeOfChar",  "(", "Expression", ")"],
+            ["id", "MethodAccess"],
+        ],
+        MethodAccess :
+        [
+            ["(", "ReverseParameters", ")"],
+            [NOP],
         ],
 
         Value :
@@ -383,6 +409,18 @@ class Parser
 
             ["VariableOrFunctionCall"],
             ["DefaultFunctionCall"],
+            
+            ["ClassObject"],
+            ["This"],
+        ],
+        
+        ClassObject :
+        [
+            ["new", "id", "(", "ReverseParameters", ")"],  
+        ],
+        This :
+        [
+            ["this"],
         ],
 
         VariableOrFunctionCall :
@@ -396,18 +434,25 @@ class Parser
         ],
         DefaultFunctionCall :
         [
-            ["is_null",      "(", "Expression", ")"],
-            ["is_bool",      "(", "Expression", ")"],
-            ["is_number",    "(", "Expression", ")"],
-            ["is_string",    "(", "Expression", ")"],
-            ["is_array",     "(", "Expression", ")"],
+            ["is_null",         "(", "Expression", ")"],
+            ["is_bool",         "(", "Expression", ")"],
+            ["is_number",       "(", "Expression", ")"],
+            ["is_string",       "(", "Expression", ")"],
+            ["is_array",        "(", "Expression", ")"],
             
-            ["print",       "(", "Parameters", ")"],
-            ["println",     "(", "Parameters", ")"],
-            ["input",       "(", "$Expression", ")"],
-            ["format",      "(", "Expression", ")"],
-            ["clone",       "(", "Expression", ")"],
-            ["rand",        "(", ")"],
+            ["print",           "(", "Parameters", ")"],
+            ["println",         "(", "Parameters", ")"],
+            ["input",           "(", "$Expression", ")"],
+            ["format",          "(", "Expression", ")"],
+            ["clone",           "(", "Expression", ")"],
+            ["rand",            "(", ")"],
+            
+            ["len",             "(", "Expression", ")"],
+            ["push",            "(", "Expression", ",", "Expression", ")"],
+            ["pop",             "(", "Expression", ")"],
+            ["split",           "(", "Expression", ",", "Expression", ")"],
+            ["join",            "(", "Expression", ",", "Expression", ")"],
+            ["code_of_char",    "(", "Expression", ",", "Expression", ")"],
         ],
 
         Parameters :

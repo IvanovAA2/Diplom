@@ -17,6 +17,9 @@ class Data
         dref        : 7,
 
         jump        : 8,
+        
+        class       : 9,
+        object      : 10,
     }
 
     static DATA_NAME = new Map
@@ -33,6 +36,9 @@ class Data
         [7, "d-ref"],
 
         [8, "jump"],
+        
+        [9, "class"],
+        [10, "object"],
     ])
 
     constructor (type, data)
@@ -123,13 +129,23 @@ class Operation
 
         "array_access",
         "slice",
+        
+        "field_access",
+        "method_access",
+        
+        "create_field",
+        
+        "this",
+        "new_object",
+        "pop_object",
+        "get_object",
 
         "len",
         "push",
         "pop",
         "split",
         "join",
-        "codeOfChar",
+        "code_of_char",
 
         "print",
         "println",
@@ -181,6 +197,9 @@ class Visitor
     
     scope_tree     = [new Scope(-1)];
     current_scope  = 0;
+    
+    class_id = {};
+    class_info = [];
     
     operations;
 
@@ -294,6 +313,214 @@ function (visitor, node, arg)
     if (length_is(node, 3))
     {
         visitor.visit(node, arg, 2);
+    }
+}
+
+Visitor.VISIT_RULE["Class"] = 
+function (visitor, node, arg)
+{
+    const NAME          = visitor.visit(node, null, 2).string;
+    const POSITION      = create_class(visitor, NAME);
+    const PARAMETERS    = structuredClone(arg);
+    const CLASS         = {};
+    
+    PARAMETERS.CLASS = CLASS;
+    PARAMETERS.CONSTRUCTOR = false;
+    PARAMETERS.ID = 1;
+    
+    const JUMP = create_operation(
+        visitor, 
+        get_operation("jump"), 
+        [new Data(Data.TYPEOF.jump, null)], 
+        null
+    );
+    
+    const FUNCTION_ID   = open_function(visitor);
+    CLASS["$"]          = new Data(
+        Data.TYPEOF.function, 
+        [
+            JUMP + 1, 
+            FUNCTION_ID
+        ]
+    );
+        
+    branch_scope(visitor);
+    PARAMETERS.VISIT_COUNT = 1;
+    visitor.visit(node, PARAMETERS, 4);
+    
+    PARAMETERS.VISIT_COUNT = 2;
+    visitor.visit(node, PARAMETERS, 4);
+    
+    close_function(visitor);
+    
+    PARAMETERS.VISIT_COUNT = 3;
+    visitor.visit(node, PARAMETERS, 4);
+    leave_scope(visitor);
+    
+    visitor.operations[JUMP].operands[0].data = next_operation(visitor);
+    
+    const CLASS_VALUE = create_value(visitor, Data.TYPEOF.class, CLASS);
+    create_operation(
+        visitor,
+        get_operation("="),
+        [
+            POSITION,
+            CLASS_VALUE
+        ],
+        null
+    );
+}
+Visitor.VISIT_RULE["ClassStatements"] = 
+function (visitor, node, arg)
+{
+    visitor.visit(node, arg, 1);
+    
+    if (length_is(node, 2))
+    {
+        visitor.visit(node, arg, 2);
+    }
+}
+Visitor.VISIT_RULE["ClassStatement"] = 
+function (visitor, node, arg)
+{
+    visitor.visit(node, arg, 1);
+}
+Visitor.VISIT_RULE["Constructor"] = 
+function (visitor, node, arg)
+{
+    const PARAMETERS = arg;
+    
+    if (PARAMETERS.VISIT_COUNT === 2)
+    {
+        if (PARAMETERS.CONSTRUCTOR)
+        {
+            const POSITION = get_position(node, 1);
+            throw new Error(`constructor was declared twice at (${POSITION.row}, ${POSITION.column})`);
+        }
+        
+        if (length_is(node, 4))
+        {
+            visitor.visit(node, PARAMETERS, 4);
+        }
+        else 
+        {
+            visitor.visit(node, null, 3);
+            visitor.visit(node, PARAMETERS, 5);
+        }
+        
+        PARAMETERS.CONSTRUCTOR = true;
+    }
+}
+// Visitor.VISIT_RULE["AccessSpecifier"] = 
+// function (visitor, node, arg)
+// {
+//     visitor.visit(node, arg, 1);
+// }
+// Visitor.VISIT_RULE["Public"] = 
+// function (visitor, node, arg)
+// {
+//     arg.is_private = false;
+// }
+// Visitor.VISIT_RULE["Private"] = 
+// function (visitor, node, arg)
+// {
+//     arg.is_private = true;
+// }
+Visitor.VISIT_RULE["ClassMember"] = 
+function (visitor, node, arg)
+{
+    const ID = visitor.visit(node, null, 1);
+    
+    visitor.visit(node, {ID : ID, PARAMETERS : arg}, 2);
+}
+Visitor.VISIT_RULE["$ClassMember"] = 
+function (visitor, node, arg)
+{
+    visitor.visit(node, arg, 1);
+}
+Visitor.VISIT_RULE["ClassField"] = 
+function (visitor, node, arg)
+{
+    const PARAMETERS = arg.PARAMETERS;
+    
+    if (PARAMETERS.VISIT_COUNT === 1)
+    {
+        const CLASS     = PARAMETERS.CLASS;
+        const ID        = arg.ID;
+        const NAME      = "CF$" + ID.string;
+        const POSITION  = ID.position;
+        
+        if (CLASS.hasOwnProperty(NAME))
+        {
+            throw new Error(`field was declared twice at (${POSITION.row}, ${POSITION.column})`); 
+        }
+        CLASS[NAME] = PARAMETERS.ID++;
+        
+        if (length_is(node, 3))
+        {
+            create_operation(
+                visitor,
+                get_operation("create_field"),
+                [
+                    CLASS[NAME],
+                    visitor.visit(node, null, 2),
+                ],
+                null
+            );
+        }
+        else
+        {
+            create_operation(
+                visitor,
+                get_operation("create_field"),
+                [
+                    CLASS[NAME],
+                    create_value(visitor, Data.TYPEOF.null, null),
+                ],
+                null
+            );
+        }
+    }
+}
+Visitor.VISIT_RULE["ClassMethod"] = 
+function (visitor, node, arg)
+{
+    const PARAMETERS = arg.PARAMETERS;
+    
+    if (PARAMETERS.VISIT_COUNT === 3)
+    {
+        const CLASS         = PARAMETERS.CLASS;
+        const ID            = arg.ID;
+        const NAME          = "CM$" + ID.string;
+        const POSITION      = ID.position;
+        
+        if (CLASS.hasOwnProperty(NAME))
+        {
+            throw new Error(`method was declared twice at (${POSITION.row}, ${POSITION.column})`); 
+        }
+        const FUNCTION_ID   = open_function(visitor);
+        CLASS[NAME]         = new Data(
+            Data.TYPEOF.function, 
+            [
+                next_operation(visitor), 
+                FUNCTION_ID
+            ]
+        );
+        
+        branch_scope(visitor);
+        
+        if (length_is(node, 3))
+        {
+            visitor.visit(node, {}, 3);
+        }
+        else 
+        {
+            visitor.visit(node, null, 2);
+            visitor.visit(node, {}, 4);
+        }
+        
+        close_function(visitor);
+        leave_scope(visitor);
     }
 }
 
@@ -1178,105 +1405,51 @@ function (visitor, node, arg)
 Visitor.VISIT_RULE["MemberAccessing"] = 
 function (visitor, node, arg)
 {
+    const RESULT    = create_position(visitor);
     const OBJECT    = arg;
-    const NAME      = name_of(node, 1); 
-    const POSITION  = get_position(node, 1); 
+    const ID        = visitor.visit(node, null, 1);
+    const NAME      = ID.string; 
+    const POSITION  = ID.position;
     
-    switch (NAME)
+    if (length_is(node, 2))
     {
-        case "len":
-        {
-            const RESULT = create_position(visitor);
-            
-            create_operation(
-                visitor,
-                get_operation("len"),
-                [RESULT, OBJECT],
-                POSITION
-            );
-            
-            return RESULT;
-        }
-        break;
-        
-        case "push":
-        {
-            const VALUE = visitor.visit(node, null, 3);
-            
-            create_operation(
-                visitor,
-                get_operation("push"),
-                [OBJECT, VALUE],
-                POSITION
-            );
-            
-            return create_value(visitor, Data.TYPEOF.null, null);
-        }
-        break;
-        case "pop":
-        {
-            const RESULT = create_position(visitor);
-            
-            create_operation(
-                visitor,
-                get_operation("pop"),
-                [RESULT, OBJECT],
-                POSITION
-            );
-            
-            return RESULT;
-        }
-        break;
-        
-        case "split":
-        {
-            const ARRAY         = create_position(visitor);
-            const STRING        = OBJECT;
-            const DELIMETER     = visitor.visit(node, null, 3);
-            
-            create_operation(
-                visitor,
-                get_operation("split"),
-                [ARRAY, STRING, DELIMETER],
-                POSITION
-            );
-            
-            return ARRAY;
-        }
-        break;
-        case "join":
-        {
-            const STRING        = create_position(visitor);
-            const ARRAY         = OBJECT;
-            const DELIMETER     = visitor.visit(node, null, 3);
-            
-            create_operation(
-                visitor,
-                get_operation("join"),
-                [STRING, ARRAY, DELIMETER],
-                POSITION
-            );
-            
-            return STRING;
-        }
-        break;
-        
-        case "codeOfChar":
-        {
-            const RESULT    = create_position(visitor);
-            const INDEX     = visitor.visit(node, null, 3);
-            
-            create_operation(
-                visitor,
-                get_operation("codeOfChar"),
-                [RESULT, OBJECT, INDEX],
-                POSITION
-            );
-            
-            return RESULT;
-        }
-        break;
+        return visitor.visit(node, [OBJECT, NAME, POSITION], 2);
     }
+    
+    create_operation(
+        visitor, 
+        get_operation("field_access"),
+        [RESULT, OBJECT, NAME],
+        POSITION
+    );
+    
+    return RESULT;
+}
+Visitor.VISIT_RULE["MethodAccess"] = 
+function (visitor, node, arg)
+{
+    const RESULT        = create_position(visitor);
+    const OBJECT        = arg[0];
+    const NAME          = arg[1]; 
+    const POSITION      = arg[2];
+    const PARAMETERS    = [];
+    
+    visitor.visit(node, PARAMETERS, 2);
+    
+    create_operation(
+        visitor, 
+        get_operation("method_access"),
+        [OBJECT, NAME, PARAMETERS],
+        POSITION
+    );
+    create_operation(
+        visitor, 
+        get_operation("pop_object"),
+        [RESULT],
+        null
+    );
+    
+    return RESULT;
 }
 
 Visitor.VISIT_RULE["Value"] = 
@@ -1288,6 +1461,56 @@ function (visitor, node, arg)
     }
 
     return visitor.visit(node, null, 2); 
+}
+
+Visitor.VISIT_RULE["ClassObject"] = 
+function (visitor, node, arg)
+{
+    const PARAMETERS    = [];
+    const ID            = visitor.visit(node, null, 2);
+    const POSITION      = ID.position;
+    const NAME          = ID.string;
+    const CLASS         = get_class(visitor, NAME, POSITION);
+    
+    if (length_is(node, 5))
+    {
+        visitor.visit(node, PARAMETERS, 4);
+    }
+    
+    create_operation(
+        visitor, 
+        get_operation("new_object"), 
+        [
+            CLASS,
+            PARAMETERS,
+        ], 
+        null
+    );
+    
+    const OBJECT = create_position(visitor);
+    create_operation(
+        visitor, 
+        get_operation("get_object"), 
+        [OBJECT], 
+        null
+    );
+    
+    return OBJECT;
+}
+Visitor.VISIT_RULE["This"] = 
+function (visitor, node, arg)
+{
+    const OBJECT    = create_position(visitor);
+    const POSITION  = get_position(node, 1);
+    
+    create_operation(
+        visitor, 
+        get_operation("this"), 
+        [OBJECT], 
+        POSITION
+    );
+    
+    return OBJECT;
 }
 
 Visitor.VISIT_RULE["VariableOrFunctionCall"] = 
@@ -1346,7 +1569,8 @@ function (visitor, node, arg)
 Visitor.VISIT_RULE["DefaultFunctionCall"] = 
 function (visitor, node, arg)
 {
-    const NAME = name_of(node, 1);
+    const NAME      = name_of(node, 1);
+    const POSITION  = get_position(node, 1);
 
     switch (NAME)
     {
@@ -1359,7 +1583,7 @@ function (visitor, node, arg)
                 visitor, 
                 get_operation("is_null"), 
                 [RESULT, VALUE], 
-                get_position(node, 1)
+                POSITION
             );
 
             return RESULT;
@@ -1374,7 +1598,7 @@ function (visitor, node, arg)
                 visitor, 
                 get_operation("is_bool"), 
                 [RESULT, VALUE], 
-                get_position(node, 1)
+                POSITION
             );
 
             return RESULT;
@@ -1389,7 +1613,7 @@ function (visitor, node, arg)
                 visitor, 
                 get_operation("is_number"), 
                 [RESULT, VALUE], 
-                get_position(node, 1)
+                POSITION
             );
 
             return RESULT;
@@ -1404,7 +1628,7 @@ function (visitor, node, arg)
                 visitor, 
                 get_operation("is_string"), 
                 [RESULT, VALUE], 
-                get_position(node, 1)
+                POSITION
             );
 
             return RESULT;
@@ -1419,7 +1643,7 @@ function (visitor, node, arg)
                 visitor, 
                 get_operation("is_array"), 
                 [RESULT, VALUE], 
-                get_position(node, 1)
+                POSITION
             );
 
             return RESULT;
@@ -1439,7 +1663,7 @@ function (visitor, node, arg)
                 visitor, 
                 get_operation("print"), 
                 PARAMETERS, 
-                get_position(node, 1)
+                POSITION
             );
 
             return create_value(visitor, Data.TYPEOF.null, null);
@@ -1458,7 +1682,7 @@ function (visitor, node, arg)
                 visitor, 
                 get_operation("println"), 
                 PARAMETERS, 
-                get_position(node, 1)
+                POSITION
             );
 
             return create_value(visitor, Data.TYPEOF.null, null);
@@ -1479,14 +1703,14 @@ function (visitor, node, arg)
                 visitor, 
                 get_operation("await"), 
                 [HINT_TEXT], 
-                get_position(node, 1)
+                POSITION
             );
             const INPUT = create_position(visitor);
             create_operation(
                 visitor, 
                 get_operation("input"), 
                 [INPUT], 
-                get_position(node, 1)
+                POSITION
             );
 
             return INPUT;
@@ -1502,7 +1726,7 @@ function (visitor, node, arg)
                 visitor, 
                 get_operation("format"), 
                 [RESULT, VALUE], 
-                get_position(node, 1)
+                POSITION
             );
 
             return RESULT;
@@ -1518,7 +1742,7 @@ function (visitor, node, arg)
                 visitor, 
                 get_operation("clone"), 
                 [RESULT, VALUE], 
-                get_position(node, 1)
+                POSITION
             );
 
             return RESULT;
@@ -1533,9 +1757,107 @@ function (visitor, node, arg)
                 visitor, 
                 get_operation("rand"), 
                 [RESULT], 
-                get_position(node, 1)
+                POSITION
             );
 
+            return RESULT;
+        }
+        break;
+        
+        
+        case "len":
+        {
+            const RESULT = create_position(visitor);
+            const OBJECT = visitor.visit(node, null, 3);
+            
+            create_operation(
+                visitor,
+                get_operation("len"),
+                [RESULT, OBJECT],
+                POSITION
+            );
+            
+            return RESULT;
+        }
+        break;
+        
+        case "push":
+        {
+            const VALUE = visitor.visit(node, null, 5);
+            const OBJECT = visitor.visit(node, null, 3);
+            
+            create_operation(
+                visitor,
+                get_operation("push"),
+                [OBJECT, VALUE],
+                POSITION
+            );
+            
+            return create_value(visitor, Data.TYPEOF.null, null);
+        }
+        break;
+        case "pop":
+        {
+            const RESULT = create_position(visitor);
+            const OBJECT = visitor.visit(node, null, 3);
+            
+            create_operation(
+                visitor,
+                get_operation("pop"),
+                [RESULT, OBJECT],
+                POSITION
+            );
+            
+            return RESULT;
+        }
+        break;
+        
+        case "split":
+        {
+            const ARRAY         = create_position(visitor);
+            const STRING        = visitor.visit(node, null, 3);
+            const DELIMETER     = visitor.visit(node, null, 5);
+            
+            create_operation(
+                visitor,
+                get_operation("split"),
+                [ARRAY, STRING, DELIMETER],
+                POSITION
+            );
+            
+            return ARRAY;
+        }
+        break;
+        case "join":
+        {
+            const STRING        = create_position(visitor);
+            const ARRAY         = visitor.visit(node, null, 3);
+            const DELIMETER     = visitor.visit(node, null, 5);
+            
+            create_operation(
+                visitor,
+                get_operation("join"),
+                [STRING, ARRAY, DELIMETER],
+                POSITION
+            );
+            
+            return STRING;
+        }
+        break;
+        
+        case "code_of_char":
+        {
+            const RESULT    = create_position(visitor);
+            const OBJECT    = visitor.visit(node, null, 3);
+            const INDEX     = visitor.visit(node, null, 5);
+            
+            create_operation(
+                visitor,
+                get_operation("code_of_char"),
+                [RESULT, OBJECT, INDEX],
+                POSITION
+            );
+            
             return RESULT;
         }
         break;
@@ -1742,7 +2064,9 @@ function get_operation (node, child = null)
         throw new Error(`no operation named ${name}`);
     }
 
-    return Operation.OPERATION[Operation.TYPEOF[name]];
+    // return Operation.OPERATION[Operation.TYPEOF[name]];
+    
+    return Operation.TYPEOF[name];
 }
 
 
@@ -1848,10 +2172,42 @@ function next_operation (visitor)
     return visitor.operations.length;
 }
 
+function create_class (visitor, name)
+{
+    const SYMBOL_TABLE  = visitor.scope_tree[visitor.current_scope].symbol_table;
+    const NAME          = "C$" + name;
+    
+    if (SYMBOL_TABLE.has(NAME))
+    {
+        return SYMBOL_TABLE.get(NAME);
+    }
+    
+    const POSITION = create_position(visitor);
+    SYMBOL_TABLE.set(NAME, POSITION);
+    
+    return POSITION;
+}
+function get_class (visitor, name, position)
+{
+    var scope = visitor.current_scope;
+    const NAME = "C$" + name;
+
+    while (visitor.scope_tree[scope].symbol_table.has(NAME) === false) 
+    {
+        scope = visitor.scope_tree[scope].parent;
+
+        if (scope === -1) 
+        {
+            throw new Error(`undeclared class "${NAME}" at (${position.row}, ${position.column})`);
+        }
+    }
+
+    return visitor.scope_tree[scope].symbol_table.get(NAME);
+}
 function create_function (visitor, name)
 {
     const SYMBOL_TABLE = visitor.scope_tree[visitor.current_scope].symbol_table;
-    const NAME = "$" + name;
+    const NAME = "F$" + name;
     
     if (SYMBOL_TABLE.has(NAME))
     {
@@ -1866,7 +2222,7 @@ function create_function (visitor, name)
 function get_function (visitor, name, position)
 {
     var scope = visitor.current_scope;
-    const NAME = "$" + name;
+    const NAME = "F$" + name;
 
     while (visitor.scope_tree[scope].symbol_table.has(NAME) === false) 
     {
@@ -1874,7 +2230,7 @@ function get_function (visitor, name, position)
 
         if (scope === -1) 
         {
-            throw new Error(`undeclared variable "${NAME}" at (${position.row}, ${position.column})`);
+            throw new Error(`undeclared function "${name}" at (${position.row}, ${position.column})`);
         }
     }
 
@@ -1882,20 +2238,22 @@ function get_function (visitor, name, position)
 }
 function create_variable (visitor, name, position)
 {
-    const SYMBOL_TABLE = visitor.scope_tree[visitor.current_scope].symbol_table;
+    const NAME          = "V$" + name;
+    const SYMBOL_TABLE  = visitor.scope_tree[visitor.current_scope].symbol_table;
 
-    if (SYMBOL_TABLE.has(name))
+    if (SYMBOL_TABLE.has(NAME))
     {
         throw new Error(`variable "${name}" already declared at (${position.row}, ${position.column})`);
     }
 
-    SYMBOL_TABLE.set(name, create_position(visitor));
+    SYMBOL_TABLE.set(NAME, create_position(visitor));
 }
 function get_variable (visitor, name, position)
 {
-    var scope = visitor.current_scope;
+    const NAME  = "V$" + name;
+    var scope   = visitor.current_scope;
 
-    while (visitor.scope_tree[scope].symbol_table.has(name) === false) 
+    while (visitor.scope_tree[scope].symbol_table.has(NAME) === false) 
     {
         scope = visitor.scope_tree[scope].parent;
 
@@ -1905,7 +2263,7 @@ function get_variable (visitor, name, position)
         }
     }
 
-    return visitor.scope_tree[scope].symbol_table.get(name);
+    return visitor.scope_tree[scope].symbol_table.get(NAME);
 }
 
 function branch_scope (visitor)

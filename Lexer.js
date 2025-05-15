@@ -77,7 +77,7 @@ class Lexer
         "pop",
         "split",
         "join",
-        "codeOfChar",
+        "code_of_char",
         
         "if",
         "elif",
@@ -94,8 +94,12 @@ class Lexer
         "func",
         
         "class",
+        "constructor",
         "public",
         "private",
+        
+        "new",
+        "this",
 
         "not",
         "or",

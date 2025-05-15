@@ -18,23 +18,23 @@ var go      = 6;
 
 func add_node (p = -1, pchar = -1)
 {
-    t.push
-    ([
+    push
+    (t, [
         p, pchar,
         -1, -1,
         [],
         [-1] * 26, [-1] * 26
     ]);
     
-    return t.len - 1;
+    return len(t) - 1;
 }
 
 add_node();
 
-var a = "a".codeOfChar(0);
+var a = code_of_char("a", 0);
 func order (s, i)
 {
-    return s.codeOfChar(i) - a;
+    return code_of_char(s, i) - a;
 }
 
 func go () {}
@@ -90,7 +90,7 @@ func exit (cur)
         }
         else
         {
-            if (t[link(cur)][leaf].len)
+            if (len(t[link(cur)][leaf]))
             {
                 t[cur][exit] = link(cur);
             }
@@ -108,7 +108,7 @@ func add (word, index)
 {
     var cur = 0;
     
-    for (var i = 0; i < word.len; i += 1)
+    for (var i = 0; i < len(word); i += 1)
     {
         var ord = order(word, i);
     
@@ -121,29 +121,29 @@ func add (word, index)
         cur = t[cur][next][ord];
     }
     
-    t[cur][leaf].push(index);
+    push(t[cur][leaf], index);
 }
 
 func solve (text, words)
 {
-    var n = words.len;
-    var ans = [0] * n, count = [0] * t.len;
+    var n = len(words);
+    var ans = [0] * n, count = [0] * len(t);
     
     var cur = 0;
-    for (var i = 0; i < text.len; i += 1)
+    for (var i = 0; i < len(text); i += 1)
     {
         cur = go(cur, order(text, i));
         
         count[cur] += 1;
     }
     
-    for (var cur = 0; cur < t.len; cur += 1)
+    for (var cur = 0; cur < len(t); cur += 1)
     {
         if (count[cur])
         {
             for (var node = cur; node !== 0; node = exit(node))
             {
-                for (var i = 0; i < t[node][leaf].len; i += 1)
+                for (var i = 0; i < len(t[node][leaf]); i += 1)
                 {
                     ans[t[node][leaf][i]] += count[cur];
                 }
@@ -153,7 +153,7 @@ func solve (text, words)
     
     for (var i = 0; i < n; i += 1)
     {
-        println(words[i] + ": \t" + ans[i]);
+        print(words[i] + ": \t" + ans[i] + "\n");
     }
 }
 
@@ -171,7 +171,7 @@ var words =
 ];
 var text = "abcdeeaabcdcdeabcdacb";
 
-for (var i = 0; i < words.len; i += 1)
+for (var i = 0; i < len(words); i += 1)
 {
     add(words[i], i);
 }

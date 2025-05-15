@@ -1,10 +1,10 @@
 var a = [1, 2, 3];
 
-a.pop();
+pop(a);
 print(a, "\n");
 
-a.pop();
+pop(a);
 print(a, "\n");
 
-a.pop();
+pop(a);
 print(a, "\n");

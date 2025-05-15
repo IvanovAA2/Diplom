@@ -1,0 +1,23 @@
+class A
+{
+    a (x)
+    {
+        println("a>", x);
+        if (x)
+        {
+            this.b(x - 1);
+        }
+        println("a<", x);
+    }
+    b (x)
+    {
+        println("b>", x);
+        if (x)
+        {
+            this.a(x - 1);
+        }
+        println("b<", x);
+    }
+}
+
+(new A()).a(10);

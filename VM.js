@@ -14,6 +14,8 @@ class Program
     parameter_stack;
     jump_back;
     return_value;
+    
+    object_stack;
 
     time_start;
     overall_time;
@@ -40,51 +42,53 @@ class Program
             this.parameter_stack    = [];
             this.jump_back          = [];
             this.return_value       = new Data(null, null);
+            
+            this.object_stack       = [];
 
             this.overall_time       = 0;
 
             // DEBUG
 
-            // var text = "", cnt = -1;
+            var text = "", cnt = -1;
 
-            // for (const OPERATION of this.operations)
-            // {
-            //     text += `${cnt += 1} \t${Operation.OPERATIONS[OPERATION.type]}: \t`;
+            for (const OPERATION of this.operations)
+            {
+                text += `${cnt += 1} \t${Operation.OPERATIONS[OPERATION.type]}: \t`;
 
-            //     for (const OPERAND of OPERATION.operands)
-            //     {
-            //         if (OPERAND && OPERAND.hasOwnProperty("data"))
-            //         {
-            //             if (OPERAND.type === Data.TYPEOF.string)
-            //             {
-            //                 text += `(${Data.DATA_NAME.get(OPERAND.type)}: "${OPERAND.data})" `;
-            //             }
-            //             else if (OPERAND.type === Data.TYPEOF.array)
-            //             {
-            //                 text += `(${Data.DATA_NAME.get(OPERAND.type)}: [`;
+                for (const OPERAND of OPERATION.operands)
+                {
+                    if (OPERAND && OPERAND.hasOwnProperty("data"))
+                    {
+                        if (OPERAND.type === Data.TYPEOF.string)
+                        {
+                            text += `(${Data.DATA_NAME.get(OPERAND.type)}: "${OPERAND.data})" `;
+                        }
+                        else if (OPERAND.type === Data.TYPEOF.array)
+                        {
+                            text += `(${Data.DATA_NAME.get(OPERAND.type)}: [`;
                             
-            //                 for (const ELEMENT of OPERAND.data)
-            //                 {
-            //                     text += `${ELEMENT.data} `;
-            //                 }
+                            for (const ELEMENT of OPERAND.data)
+                            {
+                                text += `${ELEMENT.data} `;
+                            }
                             
-            //                 text += "\b] ";
-            //             }
-            //             else
-            //             {
-            //                 text += `(${Data.DATA_NAME.get(OPERAND.type)}: ${OPERAND.data}) `;
-            //             }
-            //         }
-            //         else
-            //         {
-            //             text += OPERAND + " ";
-            //         }
-            //     }
+                            text += "\b] ";
+                        }
+                        else
+                        {
+                            text += `(${Data.DATA_NAME.get(OPERAND.type)}: ${OPERAND.data}) `;
+                        }
+                    }
+                    else
+                    {
+                        text += OPERAND + " ";
+                    }
+                }
 
-            //     text += "\n";
+                text += "\n";
 
-            // }
-            // console.log(text);
+            }
+            console.log(text);
 
             // DEBUG
         }
@@ -100,42 +104,51 @@ class Program
 
             // DEBUG
             
-            // var text = `!!!!!!!!!!!!!!!!!\n${this.current_operation} \t${Operation.OPERATIONS[OPERATION.type]} (${OPERATION.type}): `;
-            // for (const OPERAND of OPERATION.operands)
-            // {
-            //     if (OPERAND && OPERAND.hasOwnProperty("data"))
-            //     {
-            //         if (OPERAND.type === Data.TYPEOF.string)
-            //             {
-            //                 text += `(${Data.DATA_NAME.get(OPERAND.type)}: "${OPERAND.data})" `;
-            //             }
-            //             else if (OPERAND.type === Data.TYPEOF.array)
-            //             {
-            //                 text += `(${Data.DATA_NAME.get(OPERAND.type)}: [ `;
-                            
-            //                 for (const ELEMENT of OPERAND.data)
-            //                 {
-            //                     text += `${ELEMENT.data} `;
-            //                 }
-                            
-            //                 text += "] ";
-            //             }
-            //             else
-            //             {
-            //                 text += `(${Data.DATA_NAME.get(OPERAND.type)}: ${OPERAND.data}) `;
-            //             }
-            //     }
-            //     else
-            //     {
-            //         text += OPERAND + " ";
-            //     }
-            // }
-            // console.log(text);
+            var text = `!!!!!!!!!!!!!!!!!\n${this.current_operation} \t${Operation.OPERATIONS[OPERATION.type]} (${OPERATION.type}): `;
+            for (const OPERAND of OPERATION.operands)
+            {
+                if (OPERAND && OPERAND.hasOwnProperty("data"))
+                {
+                    if (OPERAND.type === Data.TYPEOF.string)
+                    {
+                        text += `(${Data.DATA_NAME.get(OPERAND.type)}: "${OPERAND.data})" `;
+                    }
+                    else if (OPERAND.type === Data.TYPEOF.array)
+                    {
+                        text += `(${Data.DATA_NAME.get(OPERAND.type)}: [ `;
+                        
+                        for (const ELEMENT of OPERAND.data)
+                        {
+                            text += `${ELEMENT.data} `;
+                        }
+                        
+                        text += "] ";
+                    }
+                    else
+                    {
+                        text += `(${Data.DATA_NAME.get(OPERAND.type)}: ${OPERAND.data}) `;
+                    }
+                }
+                else if (OPERAND && OPERAND.hasOwnProperty("$"))
+                {
+                    text += `class\n`;
+                        
+                    for (const NAME in OPERAND)
+                    {
+                        text += `${NAME} : ${OPERAND[NAME]}\n`;
+                    }
+                }
+                else
+                {
+                    text += OPERAND + " ";
+                }
+            }
+            console.log(text);
             
             // DEBUG
             
-            // Operation.OPERATION[OPERATION.type)(this, OPERATION.operands);
-            OPERATION.type(this, OPERATION.operands);
+            Operation.OPERATION[OPERATION.type](this, OPERATION.operands);
+            // OPERATION.type(this, OPERATION.operands);
 
             this.current_operation += 1;
         }
@@ -160,23 +173,25 @@ function (program, operands)
 Operation.OPERATION[Operation.TYPEOF["function"]] =
 function (program, operands)
 {
-    const FUNC = get(program, operands[0]).data;
+    const FUNCTION = get(program, operands[0]).data;
+    const FUNCTION_ID = FUNCTION[1];
+    const JUMP = FUNCTION[0] - 1;
     
     const PARAMETERS = structuredClone(operands[1]);
-    program.parameter_stack.push([]);
-    for (const OBJECT of PARAMETERS)
+    for (var object of PARAMETERS)
     {
-        program.parameter_stack.at(-1).push(sget(program, OBJECT));
+        object = sget(program, object);
     }
+    program.parameter_stack.push(PARAMETERS);
     
-    program.function_offset[FUNC[1]].push(program.stack.length);
-    program.jump_back.push([program.current_operation + 1, FUNC[1]]);
-    for (var i = 0; i < program.function_memory[FUNC[1]]; i += 1)
+    program.function_offset[FUNCTION_ID].push(program.stack.length);
+    program.jump_back.push([program.current_operation + 1, FUNCTION_ID]);
+    for (var i = 0; i < program.function_memory[FUNCTION_ID]; i += 1)
     {
         program.stack.push(new Data(Data.TYPEOF.null, null));
     }
     
-    program.current_operation = FUNC[0] - 1;
+    program.current_operation = JUMP;
 }
 Operation.OPERATION[Operation.TYPEOF["parameter"]] =
 function (program, operands)
@@ -263,7 +278,7 @@ function (program, operands)
     const POSITION  = operands[0];
     const OFFSET    = program.function_offset[POSITION[0]].at(-1);
 
-     allocate(
+    allocate(
         program, 
         program.stack[OFFSET + POSITION[1]],
         operands[1], 
@@ -1050,6 +1065,158 @@ function (program, operands)
     }
 }
 
+Operation.OPERATION[Operation.TYPEOF["field_access"]] =
+function (program, operands)
+{
+    const RESULT = operands[0];
+    const OBJECT = get(program, operands[1]).data;
+    
+    if (OBJECT.type !== Data.TYPEOF.object)
+    {
+        evoke_error_message(program, `can't access field not from class object`);
+    }
+    
+    const NAME          = operands[2];
+    const FIELD_NAME    = "CF$" + NAME;
+    const CLASS         = OBJECT[0].data;
+    
+    if (CLASS.hasOwnProperty(FIELD_NAME) === false)
+    {
+        evoke_error_message(program, `object doesn't have field "${NAME}"`);
+    }
+    const INDEX     = CLASS[FIELD_NAME];
+    const FIELD     = OBJECT[INDEX];
+    
+    deallocate(program, RESULT);
+    program.heap[FIELD.data].reference_count += 1;
+    
+    RESULT.type = FIELD.type;
+    RESULT.data = FIELD.data;
+}
+Operation.OPERATION[Operation.TYPEOF["method_access"]] =
+function (program, operands)
+{
+    const OBJECT = get(program, operands[0]);
+    
+    if (OBJECT.type !== Data.TYPEOF.object)
+    {
+        evoke_error_message(program, `can't access method not from class object`);
+    }
+    
+    const CLASS         = OBJECT.data[0].data;
+    const NAME          = operands[1];
+    const METHOD_NAME   = "CM$" + NAME;
+    
+    if (CLASS.hasOwnProperty(METHOD_NAME) === false)
+    {
+        evoke_error_message(program, `object doesn't have method "${NAME}"`);
+    }
+    
+    const FUNCTION      = CLASS[METHOD_NAME].data;
+    const FUNCTION_ID   = FUNCTION[1];
+    const JUMP          = FUNCTION[0] - 1;
+    
+    const PARAMETERS = structuredClone(operands[2]);
+    for (var object of PARAMETERS)
+    {
+        object = sget(program, object);
+    }
+    program.parameter_stack.push(PARAMETERS);
+    
+    program.function_offset[FUNCTION_ID].push(program.stack.length);
+    program.jump_back.push([program.current_operation + 1, FUNCTION_ID]);
+    for (var i = 0; i < program.function_memory[FUNCTION_ID]; i += 1)
+    {
+        program.stack.push(new Data(Data.TYPEOF.null, null));
+    }
+    
+    program.current_operation = JUMP;
+    
+    program.object_stack.push(OBJECT);
+}
+
+Operation.OPERATION[Operation.TYPEOF["create_field"]] =
+function (program, operands)
+{
+    const INDEX     = operands[0];
+    const VALUE     = operands[1];
+    const OBJECT    = program.object_stack.at(-1);
+    
+    const DREF      = sget(program, VALUE); 
+    const MIDPOINT  = new Data(Data.TYPEOF.null, null);
+    
+    allocate(program, MIDPOINT, DREF.type, DREF.data);
+    
+    OBJECT.data[INDEX] = MIDPOINT;
+    
+    program.heap[DREF.data].reference_count += 1;
+}
+
+Operation.OPERATION[Operation.TYPEOF["this"]] =
+function (program, operands)
+{
+    if (program.object_stack.length === 0)
+    {
+        evoke_error_message(program, "can't call this outside class method");
+    }
+    
+    const RESULT = operands[0];
+    const OBJECT = program.object_stack.at(-1);
+    
+    allocate_from(program, RESULT, OBJECT);
+}
+Operation.OPERATION[Operation.TYPEOF["new_object"]] =
+function (program, operands)
+{
+    const CLASS         = get(program, operands[0]);
+    const FUNCTION      = CLASS.data["$"].data;
+    const FUNCTION_ID   = FUNCTION[1];
+    const JUMP          = FUNCTION[0] - 1;
+    
+    const PARAMETERS = structuredClone(operands[1]);
+    for (var object of PARAMETERS)
+    {
+        object = sget(program, object);
+    }
+    program.parameter_stack.push(PARAMETERS);
+    
+    program.function_offset[FUNCTION_ID].push(program.stack.length);
+    program.jump_back.push([program.current_operation + 1, FUNCTION_ID]);
+    for (var i = 0; i < program.function_memory[FUNCTION_ID]; i += 1)
+    {
+        program.stack.push(new Data(Data.TYPEOF.null, null));
+    }
+    
+    program.current_operation = JUMP;
+    
+    program.object_stack.push(new Data(Data.TYPEOF.object, [CLASS]));
+}
+Operation.OPERATION[Operation.TYPEOF["get_object"]] =
+function (program, operands)
+{
+    const POSITION = sget(program, operands[0]);
+    
+    allocate(
+        program,
+        POSITION,
+        Data.TYPEOF.object,
+        program.object_stack.pop().data
+    );
+}
+
+Operation.OPERATION[Operation.TYPEOF["pop_object"]] =
+function (program, operands)
+{
+    const RESULT        = sget(program, operands[0]);
+    const RETURN_VALUE  = program.return_value;
+    
+    allocate_from(program, RESULT, RETURN_VALUE);
+    
+    deallocate(program, RETURN_VALUE);
+    
+    program.object_stack.pop();
+}
+
 Operation.OPERATION[Operation.TYPEOF["len"]] =
 function (program, operands)
 {
@@ -1171,7 +1338,7 @@ function (program, operands)
         array.join(DELIMETER.data)
     );
 }
-Operation.OPERATION[Operation.TYPEOF["codeOfChar"]] =
+Operation.OPERATION[Operation.TYPEOF["code_of_char"]] =
 function (program, operands)
 {
     const RESULT    = sget(program, operands[0]);
@@ -1541,7 +1708,7 @@ function allocate (program, object, type, data)
         }
         
         const OBJECT = program.heap[position];
-        OBJECT.type = type;
+        OBJECT.type = Data.TYPEOF.array;
         OBJECT.data = ARRAY;
         OBJECT.reference_count = 1;
     }
@@ -1756,40 +1923,67 @@ function print (program, object, stack = [])
     
     stack.pop();
 }
-function get_format (program, value, depth = 0)
+function get_format (program, value, depth = 0, nl = false)
 {
     switch (value.type)
     {
         case Data.TYPEOF.null:
         {
-            return ". ".repeat(depth) + "null";
+            return "null";
         }
         break;
         case Data.TYPEOF.bool:
         {
-            return ". ".repeat(depth) + (value.data ? "true" : "false");
+            return value.data ? "true" : "false";
         }
         break;
         case Data.TYPEOF.number:
         {
-            return ". ".repeat(depth) + String(value.data);
+            return String(value.data);
         }
         break;
         case Data.TYPEOF.string:
         {
-            return ". ".repeat(depth) + `"${value.data}"`;
+            return `"${value.data}"`;
         }
         break;
         case Data.TYPEOF.array:
         {
-            var text = ". ".repeat(depth) + "[\n";
+            var text = "";
+            if (nl)
+            {
+                text = "\n";
+            }
+            text += ". ".repeat(depth) + "[\n";
             
             for (const INDEX in value.data)
             {
-                text += INDEX + ": " + get_format(program, get(program, value.data[INDEX]), depth + 1) + "\n";
+                text += ". ".repeat(depth + 1) + INDEX + ": " + get_format(program, get(program, value.data[INDEX]), depth + 1, true) + "\n";
             }
             
             text += ". ".repeat(depth) + "]";
+            
+            return text;
+        }
+        break;
+        case Data.TYPEOF.object:
+        {
+            var text = "";
+            if (nl)
+            {
+                text = "\n";
+            }
+            text += ". ".repeat(depth) + "{\n";
+            
+            for (const NAME in value.data[0].data)
+            {
+                if (isNaN(value.data[0].data[NAME]) === false)
+                {
+                    text += ". ".repeat(depth + 1) + NAME.slice(3) + ": " + get_format(program, get(program, value.data[value.data[0].data[NAME]]), depth + 1, true) + "\n";
+                }
+            }
+            
+            text += ". ".repeat(depth) + "}";
             
             return text;
         }

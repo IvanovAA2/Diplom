@@ -1,5 +1,5 @@
 var s = "123 qwe  kl; \n \t";
 
-var a = s.split(" ");
+var a = split(s, " ");
 
 print(format(a));

@@ -2,7 +2,7 @@ var arr = [];
 
 for (var i = 0; i < 5; i += 1)
 {
-    arr.push(i);
+    push(arr, i);
     
     print(arr, "\n");
 }
