@@ -2,12 +2,12 @@ var a = 0;
 
 a += 1;
 
-print(a, "\n");
+println(a);
 
 1, a = 0;
 
-print(a, "\n");
+println(a);
 
 a += 1;
 
-print(a, "\n");
+println(a);

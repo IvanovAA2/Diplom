@@ -16,30 +16,30 @@ var leaf    = 4;
 var next    = 5;
 var go      = 6;
 
-func add_node (p = -1, pchar = -1)
+func AddNode (p = -1, pchar = -1)
 {
-    push
-    (t, [
+    t.push
+    ([
         p, pchar,
         -1, -1,
         [],
         [-1] * 26, [-1] * 26
     ]);
     
-    return len(t) - 1;
+    return t.size() - 1;
 }
 
-add_node();
+AddNode();
 
-var a = code_of_char("a", 0);
-func order (s, i)
+var a = "a".codeOfChar(0);
+func Order (s, i)
 {
-    return code_of_char(s, i) - a;
+    return s.codeOfChar(i) - a;
 }
 
-func go () {}
+func Go () {}
 
-func link (cur)
+func Link (cur)
 {
     if (t[cur][link] === -1)
     {
@@ -49,14 +49,13 @@ func link (cur)
         }
         else
         {
-            t[cur][link] = go(link(t[cur][p]), t[cur][pchar]);
+            t[cur][link] = Go(Link(t[cur][p]), t[cur][pchar]);
         }
     }
-    
     return t[cur][link];
 }
 
-func go (cur, c)
+func Go (cur, c)
 {
     if (t[cur][go][c] === -1)
     {
@@ -68,7 +67,7 @@ func go (cur, c)
             }
             else
             {
-                t[cur][go][c] = go(link(cur), c);
+                t[cur][go][c] = Go(Link(cur), c);
             }
         }
         else
@@ -80,23 +79,23 @@ func go (cur, c)
     return t[cur][go][c];
 }
 
-func exit (cur)
+func Exit (cur)
 {
     if (t[cur][exit] === -1)
     {
-        if (cur === 0 or link(cur) === 0)
+        if (cur === 0 or Link(cur) === 0)
         {
             t[cur][exit] = 0;
         }
         else
         {
-            if (len(t[link(cur)][leaf]))
+            if (t[Link(cur)][leaf].size())
             {
-                t[cur][exit] = link(cur);
+                t[cur][exit] = Link(cur);
             }
             else
             {
-                t[cur][exit] = exit(link(cur));
+                t[cur][exit] = Exit(Link(cur));
             }
         }
     }
@@ -104,46 +103,46 @@ func exit (cur)
     return t[cur][exit];
 }
 
-func add (word, index)
+func Add (word, index)
 {
     var cur = 0;
     
-    for (var i = 0; i < len(word); i += 1)
+    for (var i = 0; i < word.size(); i += 1)
     {
-        var ord = order(word, i);
+        var ord = Order(word, i);
     
         if (t[cur][next][ord] === -1)
         {
             t[cur][next][ord] = 
-            add_node(cur, ord);
+            AddNode(cur, ord);
         }
         
         cur = t[cur][next][ord];
     }
     
-    push(t[cur][leaf], index);
+    t[cur][leaf].push(index);
 }
 
-func solve (text, words)
+func Solve (text, words)
 {
-    var n = len(words);
-    var ans = [0] * n, count = [0] * len(t);
+    var n = words.size();
+    var ans = [0] * n, count = [0] * t.size();
     
     var cur = 0;
-    for (var i = 0; i < len(text); i += 1)
+    for (var i = 0; i < text.size(); i += 1)
     {
-        cur = go(cur, order(text, i));
+        cur = Go(cur, Order(text, i));
         
         count[cur] += 1;
     }
     
-    for (var cur = 0; cur < len(t); cur += 1)
+    for (var cur = 0; cur < t.size(); cur += 1)
     {
         if (count[cur])
         {
-            for (var node = cur; node !== 0; node = exit(node))
+            for (var node = cur; node !== 0; node = Exit(node))
             {
-                for (var i = 0; i < len(t[node][leaf]); i += 1)
+                for (var i = 0; i < t[node][leaf].size(); i += 1)
                 {
                     ans[t[node][leaf][i]] += count[cur];
                 }
@@ -153,7 +152,7 @@ func solve (text, words)
     
     for (var i = 0; i < n; i += 1)
     {
-        print(words[i] + ": \t" + ans[i] + "\n");
+        println(words[i] + ": \t" + ans[i]);
     }
 }
 
@@ -164,18 +163,12 @@ var words =
     "abc",
     "abcde",
     "bcd",
-    "ee",
-    "dba",
-    "cea",
-    "aedcb"
+    "ee"
 ];
 var text = "abcdeeaabcdcdeabcdacb";
 
-for (var i = 0; i < len(words); i += 1)
+for (var i = 0; i < words.size(); i += 1)
 {
-    add(words[i], i);
+    Add(words[i], i);
 }
-
-solve(text, words);
-
-#print(format(t));
+Solve(text, words);

@@ -3,4 +3,4 @@ func foo(a, b)
     return a + b;
 }
 
-print(foo(1, 2));
+println(foo(1, 2));

@@ -1,6 +1,6 @@
 func foo (a, b)
 {
-    print(a, " ", b, "\n");
+    println(a, b);
 }
 
 foo(1, 2);

@@ -74,13 +74,6 @@ class Parser
             ["FlowControl"],
             
             ["Class"],
-
-            
-            ["BreakPoint"],
-        ],
-        BreakPoint :
-        [
-            ["$"],
         ],
         Scope :
         [
@@ -99,26 +92,12 @@ class Parser
         ClassStatement :
         [
             ["Constructor"],
-            // ["AccessSpecifier"],
             ["ClassMember"],
         ],
         Constructor :
         [
             ["constructor", "(", "FunctionParameters", ")", "Scope"],
         ],
-        // AccessSpecifier :
-        // [
-        //     ["Public"],  
-        //     ["Private"],  
-        // ],
-        // Public :
-        // [
-        //     ["public", ":"],
-        // ],
-        // Private :
-        // [
-        //     ["private", ":"],
-        // ],
         ClassMember :
         [
             ["id", "$ClassMember"],  

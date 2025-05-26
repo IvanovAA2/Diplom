@@ -1,11 +1,11 @@
 func foo (n)
 {
-    print(n, " ");
+    println(n);
     if (n)
     {
         foo(n - 1);
     }
-    print(n, " ");
+    println(n);
 }
 
 foo(4);

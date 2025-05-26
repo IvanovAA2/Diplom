@@ -7,7 +7,7 @@ func bar ()
 
 func foo ()
 {
-    print("foo");
+    println("foo");
 }
 
 bar();

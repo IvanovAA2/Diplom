@@ -1,9 +1,9 @@
 var numbers = input("input numbers separated by space").split(" ");
 var sum = 0;
 
-for (var i = 0; i < numbers.len; i += 1)
+for (var i = 0; i < numbers.size(); i += 1)
 {
     sum += number(numbers[i]);
 }
 
-print(sum);
+println(sum);

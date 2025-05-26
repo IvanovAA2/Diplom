@@ -2,8 +2,8 @@ var arr = [];
 
 for (var i = 0; i < 5; i += 1)
 {
-    push(arr, i);
+    arr.push(i);
     
-    print(arr, "\n");
+    println(arr);
 }
 

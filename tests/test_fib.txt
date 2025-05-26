@@ -2,7 +2,7 @@ var fib = [1, 1];
 
 for (var i = 2; i <= 10; i += 1)
 {
-    fib += [fib[fib.len - 2] + fib[fib.len - 1]];
+    fib += [fib[fib.size() - 2] + fib[fib.size() - 1]];
 }
 
-print(fib);
+print(format(fib));

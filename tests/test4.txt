@@ -1,6 +1,12 @@
 var a = [1, 2];
-a.push(4).push(3);
-print(a);
+a.push(4)
+a.push(3);
+println(a);
 a[2] = a;
 a[2][3] = a;
-print(a);
+println(a);
+var b = [null] * 2;
+var c = 1;
+b[0] = c;
+b[1] = c;
+println(b);

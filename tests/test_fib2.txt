@@ -3,15 +3,15 @@ var fib = [[1], [1, 1]];
 for (var i = 2; i <= 10; i += 1)
 {
     fib.push(
-        fib[fib.len - 1] + 
+        fib[fib.size() - 1] + 
         [
-            fib[fib.len - 1][fib[fib.len - 1].len - 2] + 
-            fib[fib.len - 1][fib[fib.len - 1].len - 1]
+            fib[fib.size() - 1][fib[fib.size() - 1].size() - 2] + 
+            fib[fib.size() - 1][fib[fib.size() - 1].size() - 1]
         ]
     );
 }
 
-for (var i = 0; i < fib.len; i += 1)
+for (var i = 0; i < fib.szie(); i += 1)
 {
-    print(i, ":\t", fib[i], "\n");
+    println(i, ":", fib[i]);
 }

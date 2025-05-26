@@ -7,7 +7,7 @@
     
 # объявление переменных; значение по умолчанию - null
 var a, b = null, c = true, d = 3, e = "aba", f = [1, "str", null, c, [1, 2, 3]];
-# основные типы - null, bool, number, string, array; причём string и array передаются по ссылке
+# основные типы - null, bool, number, string, array; причём array передаётся и копируется по ссылке
 
 # стандартные методы и функции
 

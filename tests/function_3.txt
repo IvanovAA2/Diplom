@@ -1,6 +1,6 @@
 func foo (n)
 {
-    print(n, "\n");
+    println(n);
     
     if (n)
     {
@@ -8,10 +8,10 @@ func foo (n)
     }
     else
     {
-        print(n, "\n");
+        print(n);
     }
     
-    print(n, "\n");
+    println(n);
 }
 
 foo(10);

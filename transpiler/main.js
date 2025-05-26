@@ -92,32 +92,6 @@ let parser;
 let parse_tree;
 let program;
 
-function await_input (text)
-{
-    inputStream.disabled = false;
-    inputStreamButton.disabled = false;
-
-    inputStream.placeholder = text;
-}
-
-inputStreamButton.addEventListener('click', function() 
-{
-    inputStream.disabled = true;
-    inputStreamButton.disabled = true;
-
-    program.run(false);
-});
-
-function get_input ()
-{
-    const text = inputStream.value;
-
-    inputStream.value = "";
-    inputStream.placeholder = "";
-
-    return text;
-}
-
 function precision (number, digits = 3)
 {
     return Math.trunc(number * Math.pow(10, digits)) / Math.pow(10, digits);

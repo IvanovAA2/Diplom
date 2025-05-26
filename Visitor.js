@@ -11,15 +11,17 @@ class Data
         string      : 3,
         array       : 4,
 
-        function    : 5,
-
-        sref        : 6,
-        dref        : 7,
-
-        jump        : 8,
+        ref        : 5,
         
-        class       : 9,
-        object      : 10,
+        jump        : 6,
+        
+        class       : 7,
+        object      : 8,
+        
+        function            : 9,
+        default_function    : 10,
+        method              : 11,
+        default_method      : 12,
     }
 
     static DATA_NAME = new Map
@@ -30,15 +32,17 @@ class Data
         [3, "string"],
         [4, "array"],
 
-        [5, "func-n"],
-
-        [6, "s-ref"],
-        [7, "d-ref"],
-
-        [8, "jump"],
+        [5, "ref"],
         
-        [9, "class"],
-        [10, "object"],
+        [6, "jump"],
+        
+        [7, "class"],
+        [8, "object"],
+        
+        [9, "func-n"],
+        [10, "def_fun"],
+        [11, "method"],
+        [12, "def_mtd"],
     ])
 
     constructor (type, data)
@@ -52,9 +56,8 @@ class HeapData
 {
     type;
     data;
-
     reference_count = 1;
-
+    
     constructor (type, data)
     {
         this.type = type;
@@ -79,6 +82,8 @@ class Operation
     static OPERATIONS =
     [
         "initialization",
+        
+        "break_point",
 
         "function",
         "parameter",
@@ -130,8 +135,7 @@ class Operation
         "array_access",
         "slice",
         
-        "field_access",
-        "method_access",
+        "member_access",
         
         "create_field",
         
@@ -140,13 +144,13 @@ class Operation
         "pop_object",
         "get_object",
 
-        "len",
+        "size",
         "push",
         "pop",
         "split",
         "join",
-        "code_of_char",
-
+        "codeOfChar",
+        
         "print",
         "println",
         "await",
@@ -154,12 +158,15 @@ class Operation
         "format",
         "clone",
         "rand",
+        "clock",
 
         "is_null",
         "is_bool",
         "is_number",
         "is_string",
         "is_array",
+        "is_object",
+        "is_function",
 
         "to_bool",
         "to_number",
@@ -168,13 +175,42 @@ class Operation
         "exit",
     ]
     static OPERATION = [];
-}
+    
+    static DEFAULT_FUNCTIONS = [
+        "print",
+        "println",
+        "await",
+        "input",
+        "format",
+        "clone",
+        "rand",
+        "clock",
 
+        "is_null",
+        "is_bool",
+        "is_number",
+        "is_string",
+        "is_array",
+        "is_object",
+        "is_function",
+    ];
+    static DEFAULT_METHODS = [];
+}
 for (const INDEX in Operation.OPERATIONS)
 {
     Operation.TYPEOF[Operation.OPERATIONS[INDEX]] = INDEX;
 }
-
+Operation.DEFAULT_METHODS[Data.TYPEOF.string] = new Set([
+    "size",
+    "split",
+    "codeOfChar",
+]);
+Operation.DEFAULT_METHODS[Data.TYPEOF.array] = new Set([
+    "size",
+    "push",
+    "pop",
+    "join",
+]);
 
 class Scope
 {
@@ -233,6 +269,20 @@ class Visitor
 Visitor.VISIT_RULE["Program"] = 
 function (visitor, node, arg)
 {
+    const SYMBOL_TABLE = visitor.scope_tree[visitor.current_scope].symbol_table;
+    for (const NAME of Operation.DEFAULT_FUNCTIONS)
+    {
+        SYMBOL_TABLE.set(
+            NAME, 
+            new Data(
+                Data.TYPEOF.default_function, 
+                get_operation(NAME)
+            )
+        );
+    }
+    
+    branch_scope(visitor);
+    
     const INITIALIZATION = create_operation(
         visitor, 
         get_operation("initialization"), 
@@ -307,6 +357,16 @@ function (visitor, node, arg)
         visitor.visit(node, arg, 1);
     }
 }
+Visitor.VISIT_RULE["BreakPoint"] = 
+function (visitor, node, arg)
+{
+    create_operation(
+        visitor, 
+        get_operation("break_point"), 
+        [get_position(node, 1)], 
+        null
+    );
+}
 Visitor.VISIT_RULE["Scope"] = 
 function (visitor, node, arg)
 {
@@ -320,7 +380,7 @@ Visitor.VISIT_RULE["Class"] =
 function (visitor, node, arg)
 {
     const NAME          = visitor.visit(node, null, 2).string;
-    const POSITION      = create_class(visitor, NAME);
+    const POSITION      = create_identifier(visitor, NAME);
     const PARAMETERS    = structuredClone(arg);
     const CLASS         = {};
     
@@ -411,21 +471,6 @@ function (visitor, node, arg)
         PARAMETERS.CONSTRUCTOR = true;
     }
 }
-// Visitor.VISIT_RULE["AccessSpecifier"] = 
-// function (visitor, node, arg)
-// {
-//     visitor.visit(node, arg, 1);
-// }
-// Visitor.VISIT_RULE["Public"] = 
-// function (visitor, node, arg)
-// {
-//     arg.is_private = false;
-// }
-// Visitor.VISIT_RULE["Private"] = 
-// function (visitor, node, arg)
-// {
-//     arg.is_private = true;
-// }
 Visitor.VISIT_RULE["ClassMember"] = 
 function (visitor, node, arg)
 {
@@ -447,12 +492,12 @@ function (visitor, node, arg)
     {
         const CLASS     = PARAMETERS.CLASS;
         const ID        = arg.ID;
-        const NAME      = "CF$" + ID.string;
+        const NAME      = ID.string;
         const POSITION  = ID.position;
         
         if (CLASS.hasOwnProperty(NAME))
         {
-            throw new Error(`field was declared twice at (${POSITION.row}, ${POSITION.column})`); 
+            throw new Error(`class member was declared second time at (${POSITION.row}, ${POSITION.column})`); 
         }
         CLASS[NAME] = PARAMETERS.ID++;
         
@@ -491,16 +536,16 @@ function (visitor, node, arg)
     {
         const CLASS         = PARAMETERS.CLASS;
         const ID            = arg.ID;
-        const NAME          = "CM$" + ID.string;
+        const NAME          = ID.string;
         const POSITION      = ID.position;
         
         if (CLASS.hasOwnProperty(NAME))
         {
-            throw new Error(`method was declared twice at (${POSITION.row}, ${POSITION.column})`); 
+            throw new Error(`class member was declared second time at (${POSITION.row}, ${POSITION.column})`); 
         }
         const FUNCTION_ID   = open_function(visitor);
         CLASS[NAME]         = new Data(
-            Data.TYPEOF.function, 
+            Data.TYPEOF.method, 
             [
                 next_operation(visitor), 
                 FUNCTION_ID
@@ -528,7 +573,7 @@ Visitor.VISIT_RULE["Function"] =
 function (visitor, node, arg)
 {
     const ID            = visitor.visit(node, null, 2);
-    const FUNCTION      = create_function(visitor, ID.string);
+    const FUNCTION      = create_identifier(visitor, ID.string);
     const FUNCTION_ID   = open_function(visitor);
     const JUMP          = create_operation(
         visitor, 
@@ -595,7 +640,7 @@ function (visitor, node, arg)
 {
     const ID = visitor.visit(node, null, 1);
     
-    create_variable(visitor, ID.string, ID.position);
+    create_identifier(visitor, ID.string, ID.position);
     
     if (length_is(node, 1))
     {
@@ -603,7 +648,7 @@ function (visitor, node, arg)
             visitor,  
             get_operation("parameter"),
             [
-                get_variable(visitor, ID.string, ID.position),
+                get_identifier(visitor, ID.string, ID.position),
                 create_value(visitor, Data.TYPEOF.null, null)
             ],
             null
@@ -615,7 +660,7 @@ function (visitor, node, arg)
             visitor,  
             get_operation("parameter"),
             [
-                get_variable(visitor, ID.string, ID.position),
+                get_identifier(visitor, ID.string, ID.position),
                 visitor.visit(node, null, 2),
             ],
             null
@@ -643,36 +688,12 @@ function (visitor, node, arg)
     
     return RESULT;
 }
+
 Visitor.VISIT_RULE["Conditional"] = 
 function (visitor, node, arg)
 {
-    const ARG_COPY      = structuredClone(arg);
-    const END_OF_IF     = $create_value(visitor, Data.TYPEOF.jump, null);
-    ARG_COPY.END_OF_IF  = END_OF_IF.VALUE;
-    
-    visitor.visit(node, ARG_COPY, 1);
-    
-    if (length_is(node, 2))
-    {
-        visitor.visit(node, ARG_COPY, 2);
-    }
-    
-    visitor.operations[END_OF_IF.OPERATION].operands[2] = next_operation(visitor);
-}
-Visitor.VISIT_RULE["$ElifBlock"] = 
-function (visitor, node, arg)
-{
-    visitor.visit(node, arg, 1);
-    
-    if (length_is(node, 2))
-    {
-        visitor.visit(node, arg, 2);
-    }
-}
-Visitor.VISIT_RULE["IfBlock"] = 
-function (visitor, node, arg)
-{
-    const BOOL_EXPRESSION   = visitor.visit(node, arg, 3);
+    const ARG_COPY          = structuredClone(arg);
+    const BOOL_EXPRESSION   = visitor.visit(node, null, 3);
     const IF_JUMP           = create_operation(
         visitor, 
         get_operation("if"), 
@@ -680,49 +701,26 @@ function (visitor, node, arg)
         null
     );
     
-    branch_scope(visitor);
-    visitor.visit(node, arg, 5)
-    leave_scope(visitor);
-    
-    create_operation(
+    visitor.visit(node, ARG_COPY, 5);
+    const SKIP_JUMP = create_operation(
         visitor, 
         get_operation("jump"), 
-        [arg.END_OF_IF], 
+        [new Data(Data.TYPEOF.jump, null)], 
         null
     );
     
     visitor.operations[IF_JUMP].operands[1].data = next_operation(visitor);
-}
-Visitor.VISIT_RULE["ElifBlock"] = 
-function (visitor, node, arg)
-{
-    const BOOL_EXPRESSION   = visitor.visit(node, arg, 3);
-    const IF_JUMP           = create_operation(
-        visitor, 
-        get_operation("if"), 
-        [BOOL_EXPRESSION, new Data(Data.TYPEOF.jump, null)], 
-        null
-    );
+    if (length_is(node, 6))
+    {
+        visitor.visit(node, ARG_COPY, 6);
+    }
     
-    branch_scope(visitor);
-    visitor.visit(node, arg, 5)
-    leave_scope(visitor);
-    
-    create_operation(
-        visitor, 
-        get_operation("jump"), 
-        [arg.END_OF_IF], 
-        null
-    );
-    
-    visitor.operations[IF_JUMP].operands[1].data = next_operation(visitor);
+    visitor.operations[SKIP_JUMP].operands[0].data = next_operation(visitor);
 }
 Visitor.VISIT_RULE["ElseBlock"] = 
 function (visitor, node, arg)
 {
-    branch_scope(visitor);
     visitor.visit(node, arg, 2);
-    leave_scope(visitor);
 }
 
 Visitor.VISIT_RULE["Loop"] = 
@@ -733,34 +731,43 @@ function (visitor, node, arg)
 Visitor.VISIT_RULE["While"] = 
 function (visitor, node, arg)
 {
-    const BREAK_JUMP        = $create_value(visitor, Data.TYPEOF.jump, null);
-    const BEGIN             = next_operation(visitor); 
+    const SKIP_JUMP = create_operation(
+        visitor, 
+        get_operation("jump"), 
+        [new Data(Data.TYPEOF.jump, null)], 
+        null
+    );
+    const BREAK_JUMP = create_operation(
+        visitor, 
+        get_operation("jump"), 
+        [new Data(Data.TYPEOF.jump, null)], 
+        null
+    );
+    const CONTINUE_JUMP     = next_operation(visitor); 
     const BOOL_EXPRESSION   = visitor.visit(node, null, 3);
-    const CONTINUE_JUMP     = new Data(Data.TYPEOF.jump, BEGIN);
     
+    visitor.operations[SKIP_JUMP].operands[0].data = CONTINUE_JUMP;
     create_operation(
         visitor, 
         get_operation("if"), 
-        [BOOL_EXPRESSION, BREAK_JUMP.VALUE], 
+        [BOOL_EXPRESSION, new Data(Data.TYPEOF.jump, BREAK_JUMP)], 
         null
     );
     
-    const ARG_COPY = structuredClone(arg);
-    ARG_COPY.BREAK = BREAK_JUMP.VALUE;
-    ARG_COPY.CONTINUE = CONTINUE_JUMP;
+    const ARG_COPY      = structuredClone(arg);
+    ARG_COPY.BREAK      = BREAK_JUMP;
+    ARG_COPY.CONTINUE   = CONTINUE_JUMP;
     
-    branch_scope(visitor);
     visitor.visit(node, ARG_COPY, 5);
-    leave_scope(visitor);
     
     create_operation(
         visitor, 
         get_operation("jump"), 
-        [CONTINUE_JUMP], 
+        [new Data(Data.TYPEOF.jump, CONTINUE_JUMP)], 
         null
     );
     
-    visitor.operations[BREAK_JUMP.OPERATION].operands[2] = next_operation(visitor);
+    visitor.operations[BREAK_JUMP].operands[0].data = next_operation(visitor);
 }
 Visitor.VISIT_RULE["For"] = 
 function (visitor, node, arg)
@@ -768,47 +775,47 @@ function (visitor, node, arg)
     branch_scope(visitor);
     
     visitor.visit(node, null, 3);
-    const BREAK_JUMP = $create_value(visitor, Data.TYPEOF.jump, null);
     
-    const FIRST_JUMP = create_operation(
+    const SKIP_JUMP = create_operation(
         visitor, 
         get_operation("jump"), 
         [new Data(Data.TYPEOF.jump, null)], 
         null
     );
-    
-    const BEGIN = next_operation(visitor); 
-    
-    visitor.visit(node, null, 7);
-    
-    visitor.operations[FIRST_JUMP].operands[0].data = next_operation(visitor);
-    
+    const BREAK_JUMP = create_operation(
+        visitor, 
+        get_operation("jump"), 
+        [new Data(Data.TYPEOF.jump, null)], 
+        null
+    );
+    const CONTINUE_JUMP     = next_operation(visitor); 
     const BOOL_EXPRESSION   = visitor.visit(node, null, 5);
-    const CONTINUE_JUMP     = new Data(Data.TYPEOF.jump, BEGIN);
     
+    visitor.operations[SKIP_JUMP].operands[0].data = CONTINUE_JUMP;
     create_operation(
         visitor, 
         get_operation("if"), 
-        [BOOL_EXPRESSION, BREAK_JUMP.VALUE], 
+        [BOOL_EXPRESSION, new Data(Data.TYPEOF.jump, BREAK_JUMP)], 
         null
     );
     
     const ARG_COPY      = structuredClone(arg);
-    ARG_COPY.BREAK      = BREAK_JUMP.VALUE;
+    ARG_COPY.BREAK      = BREAK_JUMP;
     ARG_COPY.CONTINUE   = CONTINUE_JUMP;
     
     visitor.visit(node, ARG_COPY, 9);
+    visitor.visit(node, ARG_COPY, 7);
     
     create_operation(
         visitor, 
         get_operation("jump"), 
-        [CONTINUE_JUMP], 
+        [new Data(Data.TYPEOF.jump, CONTINUE_JUMP)], 
         null
     );
     
-    leave_scope(visitor);
+    visitor.operations[BREAK_JUMP].operands[0].data = next_operation(visitor);
     
-    visitor.operations[BREAK_JUMP.OPERATION].operands[2] = next_operation(visitor);
+    leave_scope(visitor);
 }
 Visitor.VISIT_RULE["ExpressionOrDeclaration"] = 
 function (visitor, node, arg)
@@ -827,7 +834,10 @@ function (visitor, node, arg)
             create_operation(
                 visitor, 
                 get_operation("jump"), 
-                [arg.CONTINUE], 
+                [new Data(
+                    Data.TYPEOF.jump,
+                    arg.CONTINUE
+                )], 
                 null
             );
         }
@@ -837,7 +847,10 @@ function (visitor, node, arg)
             create_operation(
                 visitor, 
                 get_operation("jump"), 
-                [arg.BREAK], 
+                [new Data(
+                    Data.TYPEOF.jump,
+                    arg.BREAK
+                )], 
                 null
             );
         }
@@ -891,15 +904,31 @@ Visitor.VISIT_RULE["SingleDeclaration"] =
 function (visitor, node, arg)
 {
     const VARIABLE = visitor.visit(node, null, 1);
-    create_variable(visitor, VARIABLE.string, VARIABLE.position);
+    create_identifier(visitor, VARIABLE.string, VARIABLE.position);
 
+    if (length_is(node, 1))
+    {
+        create_operation(
+            visitor,
+            get_operation("="),
+            [
+                get_identifier(
+                    visitor,
+                    VARIABLE.string,
+                    VARIABLE.position
+                ),
+                create_value(visitor, Data.TYPEOF.null, null)
+            ],
+            null
+        );
+    }
     if (length_is(node, 2))
     {
         create_operation(
             visitor,
             get_operation("="),
             [
-                get_variable(
+                get_identifier(
                     visitor,
                     VARIABLE.string,
                     VARIABLE.position
@@ -1302,6 +1331,11 @@ function (visitor, node, arg)
 Visitor.VISIT_RULE["UnaryOp"] = 
 function (visitor, node, arg)
 {
+    if (length_is(node, 1))
+    {
+        return visitor.visit(node, null, 1);
+    }
+    
     const NAME      = name_of(node, 1);
     const RESULT    = create_position(visitor);
     const VALUE     = visitor.visit(node, null, 2);
@@ -1358,13 +1392,26 @@ function (visitor, node, arg)
     
     return visitor.visit(node, OBJECT, 2);
 }
+Visitor.VISIT_RULE["$Accessing"] = 
+function (visitor, node, arg)
+{
+    const OBJECT = visitor.visit(node, arg, 1);
+
+    if (length_is(node, 1))
+    {
+        return OBJECT;
+    }
+    
+    return visitor.visit(node, OBJECT, 2);
+}
 Visitor.VISIT_RULE["SingleAccessing"] = 
 function (visitor, node, arg)
 {
-    if (length_is(node, 2))
-    {
-        return visitor.visit(node, arg, 2);
-    }
+    return visitor.visit(node, arg, 1);
+}
+Visitor.VISIT_RULE["SubscriptOrSlice"] = 
+function (visitor, node, arg)
+{
     if (length_is(node, 3))
     {
         const ELEMENT   = create_position(visitor);
@@ -1389,7 +1436,7 @@ function (visitor, node, arg)
         
         create_operation(
             visitor, 
-            get_operation("array_access"),
+            get_operation("slice"),
             [SLICE, SEQUENCE, BEGIN, END],
             get_position(node, 1)
         );
@@ -1407,46 +1454,15 @@ function (visitor, node, arg)
 {
     const RESULT    = create_position(visitor);
     const OBJECT    = arg;
-    const ID        = visitor.visit(node, null, 1);
+    const ID        = visitor.visit(node, null, 2);
     const NAME      = ID.string; 
     const POSITION  = ID.position;
     
-    if (length_is(node, 2))
-    {
-        return visitor.visit(node, [OBJECT, NAME, POSITION], 2);
-    }
-    
     create_operation(
         visitor, 
-        get_operation("field_access"),
+        get_operation("member_access"),
         [RESULT, OBJECT, NAME],
         POSITION
-    );
-    
-    return RESULT;
-}
-Visitor.VISIT_RULE["MethodAccess"] = 
-function (visitor, node, arg)
-{
-    const RESULT        = create_position(visitor);
-    const OBJECT        = arg[0];
-    const NAME          = arg[1]; 
-    const POSITION      = arg[2];
-    const PARAMETERS    = [];
-    
-    visitor.visit(node, PARAMETERS, 2);
-    
-    create_operation(
-        visitor, 
-        get_operation("method_access"),
-        [OBJECT, NAME, PARAMETERS],
-        POSITION
-    );
-    create_operation(
-        visitor, 
-        get_operation("pop_object"),
-        [RESULT],
-        null
     );
     
     return RESULT;
@@ -1463,14 +1479,14 @@ function (visitor, node, arg)
     return visitor.visit(node, null, 2); 
 }
 
-Visitor.VISIT_RULE["ClassObject"] = 
+Visitor.VISIT_RULE["NewObject"] = 
 function (visitor, node, arg)
 {
     const PARAMETERS    = [];
     const ID            = visitor.visit(node, null, 2);
     const POSITION      = ID.position;
     const NAME          = ID.string;
-    const CLASS         = get_class(visitor, NAME, POSITION);
+    const CLASS         = get_identifier(visitor, NAME, POSITION);
     
     if (length_is(node, 5))
     {
@@ -1513,17 +1529,14 @@ function (visitor, node, arg)
     return OBJECT;
 }
 
-Visitor.VISIT_RULE["VariableOrFunctionCall"] = 
+Visitor.VISIT_RULE["Variable"] = 
 function (visitor, node, arg)
 {
-    const ID = visitor.visit(node, null, 1);
+    const ID        = visitor.visit(node, null, 1);
+    const NAME      = ID.string;
+    const POSITION  = ID.position;
     
-    if (length_is(node, 1))
-    {
-        return get_variable(visitor, ID.string, ID.position);
-    }
-    
-    return visitor.visit(node, ID, 2);
+    return VARIABLE = get_identifier(visitor, NAME, POSITION);
 }
 Visitor.VISIT_RULE["id"] = 
 function (visitor, node, arg)
@@ -1535,7 +1548,7 @@ Visitor.VISIT_RULE["FunctionCall"] =
 function (visitor, node, arg)
 {
     const PARAMETERS    = [];
-    const ID            = arg;
+    const FUNCTION      = arg;
     
     if (length_is(node, 3))
     {
@@ -1546,14 +1559,10 @@ function (visitor, node, arg)
         visitor, 
         get_operation("function"), 
         [
-            get_function(
-                visitor,
-                ID.string,
-                ID.position
-            ), 
+            FUNCTION, 
             PARAMETERS
         ], 
-        null
+        get_position(node, 1)
     );
     
     const RETURN_VALUE = create_position(visitor);
@@ -1566,348 +1575,6 @@ function (visitor, node, arg)
     
     return RETURN_VALUE;
 }
-Visitor.VISIT_RULE["DefaultFunctionCall"] = 
-function (visitor, node, arg)
-{
-    const NAME      = name_of(node, 1);
-    const POSITION  = get_position(node, 1);
-
-    switch (NAME)
-    {
-        case "is_null":
-        {
-            const RESULT    = create_position(visitor);
-            const VALUE     = visitor.visit(node, null, 3);
-
-            create_operation(
-                visitor, 
-                get_operation("is_null"), 
-                [RESULT, VALUE], 
-                POSITION
-            );
-
-            return RESULT;
-        }
-        break;
-        case "is_bool":
-        {
-            const RESULT    = create_position(visitor);
-            const VALUE     = visitor.visit(node, null, 3);
-
-            create_operation(
-                visitor, 
-                get_operation("is_bool"), 
-                [RESULT, VALUE], 
-                POSITION
-            );
-
-            return RESULT;
-        }
-        break;
-        case "is_number":
-        {
-            const RESULT    = create_position(visitor);
-            const VALUE     = visitor.visit(node, null, 3);
-
-            create_operation(
-                visitor, 
-                get_operation("is_number"), 
-                [RESULT, VALUE], 
-                POSITION
-            );
-
-            return RESULT;
-        }
-        break;
-        case "is_string":
-        {
-            const RESULT    = create_position(visitor);
-            const VALUE     = visitor.visit(node, null, 3);
-
-            create_operation(
-                visitor, 
-                get_operation("is_string"), 
-                [RESULT, VALUE], 
-                POSITION
-            );
-
-            return RESULT;
-        }
-        break;
-        case "is_array":
-        {
-            const RESULT    = create_position(visitor);
-            const VALUE     = visitor.visit(node, null, 3);
-
-            create_operation(
-                visitor, 
-                get_operation("is_array"), 
-                [RESULT, VALUE], 
-                POSITION
-            );
-
-            return RESULT;
-        }
-        break;
-        
-        case "print":
-        {
-            const PARAMETERS = [];
-
-            if (length_is(node, 4))
-            {
-                visitor.visit(node, PARAMETERS, 3);
-            }
-
-            create_operation(
-                visitor, 
-                get_operation("print"), 
-                PARAMETERS, 
-                POSITION
-            );
-
-            return create_value(visitor, Data.TYPEOF.null, null);
-        }
-        break;
-        case "println":
-        {
-            const PARAMETERS = [];
-
-            if (length_is(node, 4))
-            {
-                visitor.visit(node, PARAMETERS, 3);
-            }
-
-            create_operation(
-                visitor, 
-                get_operation("println"), 
-                PARAMETERS, 
-                POSITION
-            );
-
-            return create_value(visitor, Data.TYPEOF.null, null);
-        }
-        break;
-        case "input":
-        {
-            if (length_is(node, 4))
-            {
-                var HINT_TEXT = visitor.visit(node, null, 3);
-            }
-            if (length_is(node, 3))
-            {
-                var HINT_TEXT = create_value(visitor, Data.TYPEOF.string, "");
-            }
-
-            create_operation(
-                visitor, 
-                get_operation("await"), 
-                [HINT_TEXT], 
-                POSITION
-            );
-            const INPUT = create_position(visitor);
-            create_operation(
-                visitor, 
-                get_operation("input"), 
-                [INPUT], 
-                POSITION
-            );
-
-            return INPUT;
-        }
-        break;
-        
-        case "format":
-        {
-            const RESULT    = create_position(visitor);
-            const VALUE     = visitor.visit(node, null, 3);
-
-            create_operation(
-                visitor, 
-                get_operation("format"), 
-                [RESULT, VALUE], 
-                POSITION
-            );
-
-            return RESULT;
-        }
-        break;
-        
-        case "clone":
-        {
-            const RESULT    = create_position(visitor);
-            const VALUE     = visitor.visit(node, null, 3);
-
-            create_operation(
-                visitor, 
-                get_operation("clone"), 
-                [RESULT, VALUE], 
-                POSITION
-            );
-
-            return RESULT;
-        }
-        break;
-        
-        case "rand":
-        {
-            const RESULT    = create_position(visitor);
-
-            create_operation(
-                visitor, 
-                get_operation("rand"), 
-                [RESULT], 
-                POSITION
-            );
-
-            return RESULT;
-        }
-        break;
-        
-        
-        case "len":
-        {
-            const RESULT = create_position(visitor);
-            const OBJECT = visitor.visit(node, null, 3);
-            
-            create_operation(
-                visitor,
-                get_operation("len"),
-                [RESULT, OBJECT],
-                POSITION
-            );
-            
-            return RESULT;
-        }
-        break;
-        
-        case "push":
-        {
-            const VALUE = visitor.visit(node, null, 5);
-            const OBJECT = visitor.visit(node, null, 3);
-            
-            create_operation(
-                visitor,
-                get_operation("push"),
-                [OBJECT, VALUE],
-                POSITION
-            );
-            
-            return create_value(visitor, Data.TYPEOF.null, null);
-        }
-        break;
-        case "pop":
-        {
-            const RESULT = create_position(visitor);
-            const OBJECT = visitor.visit(node, null, 3);
-            
-            create_operation(
-                visitor,
-                get_operation("pop"),
-                [RESULT, OBJECT],
-                POSITION
-            );
-            
-            return RESULT;
-        }
-        break;
-        
-        case "split":
-        {
-            const ARRAY         = create_position(visitor);
-            const STRING        = visitor.visit(node, null, 3);
-            const DELIMETER     = visitor.visit(node, null, 5);
-            
-            create_operation(
-                visitor,
-                get_operation("split"),
-                [ARRAY, STRING, DELIMETER],
-                POSITION
-            );
-            
-            return ARRAY;
-        }
-        break;
-        case "join":
-        {
-            const STRING        = create_position(visitor);
-            const ARRAY         = visitor.visit(node, null, 3);
-            const DELIMETER     = visitor.visit(node, null, 5);
-            
-            create_operation(
-                visitor,
-                get_operation("join"),
-                [STRING, ARRAY, DELIMETER],
-                POSITION
-            );
-            
-            return STRING;
-        }
-        break;
-        
-        case "code_of_char":
-        {
-            const RESULT    = create_position(visitor);
-            const OBJECT    = visitor.visit(node, null, 3);
-            const INDEX     = visitor.visit(node, null, 5);
-            
-            create_operation(
-                visitor,
-                get_operation("code_of_char"),
-                [RESULT, OBJECT, INDEX],
-                POSITION
-            );
-            
-            return RESULT;
-        }
-        break;
-    }
-}
-
-Visitor.VISIT_RULE["Parameters"] = 
-function (visitor, node, arg)
-{
-    const PARAMETERS = arg;
-    PARAMETERS.push(visitor.visit(node, null, 1));
-    
-    if (length_is(node, 2))
-    {
-        visitor.visit(node, PARAMETERS, 2);
-    }
-}
-Visitor.VISIT_RULE["$Parameters"] = 
-function (visitor, node, arg)
-{
-    const PARAMETERS = arg;
-    PARAMETERS.push(visitor.visit(node, null, 2));
-
-    if (length_is(node, 3))
-    {
-        visitor.visit(node, PARAMETERS, 3);
-    }
-}
-Visitor.VISIT_RULE["ReverseParameters"] = 
-function (visitor, node, arg)
-{
-    const PARAMETERS = arg;
-    if (length_is(node, 2))
-    {
-        visitor.visit(node, PARAMETERS, 2);
-    }
-    
-    PARAMETERS.push(visitor.visit(node, null, 1));
-}
-Visitor.VISIT_RULE["$ReverseParameters"] = 
-function (visitor, node, arg)
-{
-    const PARAMETERS = arg;
-    if (length_is(node, 3))
-    {
-        visitor.visit(node, PARAMETERS, 3);
-    }
-    
-    PARAMETERS.push(visitor.visit(node, null, 2));
-}
 
 Visitor.VISIT_RULE["Null"] = 
 function (visitor, node, arg)
@@ -1917,15 +1584,9 @@ function (visitor, node, arg)
 Visitor.VISIT_RULE["Boolean"] = 
 function (visitor, node, arg)
 {
-    return visitor.visit(node, null, 1); 
-}
-Visitor.VISIT_RULE["Boolean"] = 
-function (visitor, node, arg)
-{
     if (length_is(node, 1))
     {
         return visitor.visit(node, null, 1); 
-        
     }
 
     const RESULT    = create_position(visitor);
@@ -2053,7 +1714,7 @@ function get_position (node, child)
 
 function get_operation (node, child = null)
 {
-    var name = node;
+    let name = node;
     if (child !== null)
     {
         name = node.children[child - 1].children.type;
@@ -2064,11 +1725,10 @@ function get_operation (node, child = null)
         throw new Error(`no operation named ${name}`);
     }
 
-    // return Operation.OPERATION[Operation.TYPEOF[name]];
-    
-    return Operation.TYPEOF[name];
+    // CHANGE
+    return Operation.OPERATION[Operation.TYPEOF[name]];
+    // return Operation.TYPEOF[name];
 }
-
 
 function open_function (visitor)
 {
@@ -2109,7 +1769,7 @@ function create_position (visitor)
 
     visitor.function_memory[CURRENT_FUNCTION] += 1;
 
-    return new Data(Data.TYPEOF.sref, POSITION);
+    return new Data(Data.TYPEOF.ref, POSITION);
 }
 function create_value (visitor, type, data)
 {
@@ -2123,14 +1783,41 @@ function create_value (visitor, type, data)
         visitor, 
         get_operation("create"), 
         [
-            POSITION, 
+            new Data(
+                Data.TYPEOF.ref,
+                POSITION
+            ), 
             type, 
             data
         ], 
         null
     );
 
-    return new Data(Data.TYPEOF.sref, POSITION);
+    return new Data(Data.TYPEOF.ref, POSITION);
+}
+function copy_value (visitor, type, data)
+{
+    const CURRENT_FUNCTION  = visitor.function_stack.at(-1);
+    const FUNCTION_MEMORY   = visitor.function_memory[CURRENT_FUNCTION];
+    const POSITION          = [CURRENT_FUNCTION, FUNCTION_MEMORY];
+
+    visitor.function_memory[CURRENT_FUNCTION] += 1;
+
+    create_operation(
+        visitor, 
+        get_operation("copy"), 
+        [
+            new Data(
+                Data.TYPEOF.ref,
+                POSITION
+            ), 
+            type, 
+            data
+        ], 
+        null
+    );
+
+    return new Data(Data.TYPEOF.ref, POSITION);
 }
 function $create_value (visitor, type, data)
 {
@@ -2144,7 +1831,10 @@ function $create_value (visitor, type, data)
         visitor, 
         get_operation("create"), 
         [
-            POSITION, 
+            new Data(
+                Data.TYPEOF.ref,
+                POSITION
+            ), 
             type, 
             data
         ], 
@@ -2152,7 +1842,7 @@ function $create_value (visitor, type, data)
     );
 
     return {
-        VALUE       : new Data(Data.TYPEOF.sref, POSITION), 
+        VALUE       : new Data(Data.TYPEOF.ref, POSITION), 
         OPERATION   : OPERATION
     };
 }
@@ -2172,98 +1862,32 @@ function next_operation (visitor)
     return visitor.operations.length;
 }
 
-function create_class (visitor, name)
-{
-    const SYMBOL_TABLE  = visitor.scope_tree[visitor.current_scope].symbol_table;
-    const NAME          = "C$" + name;
-    
-    if (SYMBOL_TABLE.has(NAME))
-    {
-        return SYMBOL_TABLE.get(NAME);
-    }
-    
-    const POSITION = create_position(visitor);
-    SYMBOL_TABLE.set(NAME, POSITION);
-    
-    return POSITION;
-}
-function get_class (visitor, name, position)
-{
-    var scope = visitor.current_scope;
-    const NAME = "C$" + name;
-
-    while (visitor.scope_tree[scope].symbol_table.has(NAME) === false) 
-    {
-        scope = visitor.scope_tree[scope].parent;
-
-        if (scope === -1) 
-        {
-            throw new Error(`undeclared class "${NAME}" at (${position.row}, ${position.column})`);
-        }
-    }
-
-    return visitor.scope_tree[scope].symbol_table.get(NAME);
-}
-function create_function (visitor, name)
+function create_identifier (visitor, name)
 {
     const SYMBOL_TABLE = visitor.scope_tree[visitor.current_scope].symbol_table;
-    const NAME = "F$" + name;
-    
-    if (SYMBOL_TABLE.has(NAME))
+
+    if (SYMBOL_TABLE.has(name) == false)
     {
-        return SYMBOL_TABLE.get(NAME);
+        SYMBOL_TABLE.set(name, create_position(visitor));
     }
     
-    const POSITION = create_position(visitor);
-    SYMBOL_TABLE.set(NAME, POSITION);
-    
-    return POSITION;
+    return SYMBOL_TABLE.get(name);
 }
-function get_function (visitor, name, position)
+function get_identifier (visitor, name, position)
 {
-    var scope = visitor.current_scope;
-    const NAME = "F$" + name;
+    let scope = visitor.current_scope;
 
-    while (visitor.scope_tree[scope].symbol_table.has(NAME) === false) 
+    while (visitor.scope_tree[scope].symbol_table.has(name) === false) 
     {
         scope = visitor.scope_tree[scope].parent;
 
         if (scope === -1) 
         {
-            throw new Error(`undeclared function "${name}" at (${position.row}, ${position.column})`);
+            throw new Error(`undeclared identifier "${name}" at (${position.row}, ${position.column})`);
         }
     }
 
-    return visitor.scope_tree[scope].symbol_table.get(NAME);
-}
-function create_variable (visitor, name, position)
-{
-    const NAME          = "V$" + name;
-    const SYMBOL_TABLE  = visitor.scope_tree[visitor.current_scope].symbol_table;
-
-    if (SYMBOL_TABLE.has(NAME))
-    {
-        throw new Error(`variable "${name}" already declared at (${position.row}, ${position.column})`);
-    }
-
-    SYMBOL_TABLE.set(NAME, create_position(visitor));
-}
-function get_variable (visitor, name, position)
-{
-    const NAME  = "V$" + name;
-    var scope   = visitor.current_scope;
-
-    while (visitor.scope_tree[scope].symbol_table.has(NAME) === false) 
-    {
-        scope = visitor.scope_tree[scope].parent;
-
-        if (scope === -1) 
-        {
-            throw new Error(`undeclared variable "${name}" at (${position.row}, ${position.column})`);
-        }
-    }
-
-    return visitor.scope_tree[scope].symbol_table.get(NAME);
+    return visitor.scope_tree[scope].symbol_table.get(name);
 }
 
 function branch_scope (visitor)
@@ -2276,9 +1900,4 @@ function branch_scope (visitor)
 function leave_scope (visitor)
 {
     visitor.current_scope = visitor.scope_tree[visitor.current_scope].parent;
-}
-
-function is_valid_index (array, index)
-{
-    return !(index < 0 || index >= array.length || index % 1 != 0);
 }

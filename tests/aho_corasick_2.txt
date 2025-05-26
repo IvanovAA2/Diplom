@@ -15,19 +15,20 @@ class Node
     }
 }
 
+var code_of_a = "a".codeOfChar(0);
 func order (s, i)
 {
-    return code_of_char(s, i) - code_of_char("a", 0);
+    return s.codeOfChar(i) - code_of_a;
 }
 
 class AhoCorasick
 {
     t = [new Node()];
     
-    link (cur)
+    Link (cur)
     {
-        println("link ", cur);
         var t = this.t;
+        
         if (t[cur].link === -1)
         {
             if (cur === 0 or t[cur].p === 0)
@@ -36,17 +37,17 @@ class AhoCorasick
             }
             else
             {
-                t[cur].link = this.go(this.link(t[cur].p), t[cur].pchar);
+                t[cur].link = this.Go(this.Link(t[cur].p), t[cur].pchar);
             }
         }
-        println("link ", t[cur].link);
+        
         return t[cur].link;
     }
     
-    go (cur, c)
+    Go (cur, c)
     {
-        println("go ", cur, " ", c);
         var t = this.t;
+        
         if (t[cur].go[c] === -1)
         {
             if (t[cur].next[c] === -1)
@@ -57,7 +58,7 @@ class AhoCorasick
                 }
                 else
                 {
-                    t[cur].go[c] = this.go(this.link(cur), c);
+                    t[cur].go[c] = this.Go(this.Link(cur), c);
                 }
             }
             else
@@ -65,28 +66,28 @@ class AhoCorasick
                 t[cur].go[c] = t[cur].next[c];
             }
         }
-        println("go ", t[cur].go[c]);
+        
         return t[cur].go[c];
     }
     
-    exit (cur)
+    Exit (cur)
     {
         var t = this.t;
         if (t[cur].exit === -1)
         {
-            if (cur === 0 or this.link(cur) === 0)
+            if (cur === 0 or this.Link(cur) === 0)
             {
                 t[cur].exit = 0;
             }
             else
             {
-                if (len(t[this.link(cur)].leaf))
+                if (t[this.Link(cur)].leaf.size())
                 {
-                    t[cur].exit = this.link(cur);
+                    t[cur].exit = this.Link(cur);
                 }
                 else
                 {
-                    t[cur].exit = this.exit(this.link(cur));
+                    t[cur].exit = this.Exit(this.Link(cur));
                 }
             }
         }
@@ -94,46 +95,46 @@ class AhoCorasick
         return t[cur].exit;
     }
     
-    add (word, index)
+    Add (word, index)
     {
         var cur = 0, t = this.t;
         
-        for (var i = 0; i < len(word); i += 1)
+        for (var i = 0; i < word.size(); i += 1)
         {
             var ord = order(word, i);
         
             if (t[cur].next[ord] === -1)
             {
-                t[cur].next[ord] = len(t);
-                push(t, new Node(cur, ord));
+                t[cur].next[ord] = t.size();
+                t.push(new Node(cur, ord));
             }
             
             cur = t[cur].next[ord];
         }
         
-        push(t[cur].leaf, index);
+        t[cur].leaf.push(index);
     }
     
     solve (text, words)
     {
-        var n = len(words), t = this.t;
-        var ans = [0] * n, count = [0] * len(t);
+        var n = words.size(), t = this.t;
+        var ans = [0] * n, count = [0] * t.size();
         
         var cur = 0;
-        for (var i = 0; i < len(text); i += 1)
+        for (var i = 0; i < text.size(); i += 1)
         {
-            cur = this.go(cur, order(text, i));
+            cur = this.Go(cur, order(text, i));
             
             count[cur] += 1;
         }
         
-        for (var cur = 0; cur < len(t); cur += 1)
+        for (var cur = 0; cur < t.size(); cur += 1)
         {
             if (count[cur])
             {
-                for (var node = cur; node !== 0; node = this.exit(node))
+                for (var node = cur; node !== 0; node = this.Exit(node))
                 {
-                    for (var i = 0; i < len(t[node].leaf); i += 1)
+                    for (var i = 0; i < t[node].leaf.size(); i += 1)
                     {
                         ans[t[node].leaf[i]] += count[cur];
                     }
@@ -155,17 +156,13 @@ var words =
     "abc",
     "abcde",
     "bcd",
-    "ee",
-    "dba",
-    "cea",
-    "aedcb"
+    "ee"
 ];
 var text = "abcdeeaabcdcdeabcdacb";
 
 var ac = new AhoCorasick();
-for (var i = 0; i < len(words); i += 1)
+for (var i = 0; i < words.size(); i += 1)
 {
-    ac.add(words[i], i);
+    ac.Add(words[i], i);    
 }
-print(format(ac.t));
 ac.solve(text, words);
