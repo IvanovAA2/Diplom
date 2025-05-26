@@ -438,14 +438,7 @@ function (visitor, node, arg)
 Visitor.VISIT_RULE["BitOr"] = 
 function (visitor, node, arg)
 {
-    const LEFT = visitor.visit(node, arg, 1);
-
-    if (length_is(node, 1))
-    {
-        return LEFT;
-    }
-
-    return visitor.visit(node, LEFT, 2);
+    visitor.visit_all(node, arg);
 }
 Visitor.VISIT_RULE["$BitOr"] =
 function (visitor, node, arg)
@@ -465,14 +458,7 @@ function (visitor, node, arg)
 Visitor.VISIT_RULE["BitAnd"] = 
 function (visitor, node, arg)
 {
-    const LEFT = visitor.visit(node, arg, 1);
-
-    if (length_is(node, 1))
-    {
-        return LEFT;
-    }
-
-    return visitor.visit(node, LEFT, 2);
+    visitor.visit_all(node, arg);
 }
 Visitor.VISIT_RULE["$BitAnd"] =
 function (visitor, node, arg)
@@ -598,121 +584,64 @@ function (visitor, node, arg)
 Visitor.VISIT_RULE["Null"] = 
 function (visitor, node, arg)
 {
-    return create_value(visitor, Data.TYPEOF.null, null);
+    visitor.visit_all(node, arg);
 }
 Visitor.VISIT_RULE["Boolean"] = 
 function (visitor, node, arg)
 {
     if (length_is(node, 1))
     {
-        return visitor.visit(node, arg, 1); 
+        visitor.visit_all(node, arg);
     }
-
-    const RESULT    = create_position(visitor);
-    const VALUE     = visitor.visit(node, arg, 3); 
-
-    create_operation(
-        visitor, 
-        get_operation("to_bool"), 
-        [RESULT, VALUE], 
-        get_position(node, 1)
-    );
-
-    return RESULT;
-}
-Visitor.VISIT_RULE["true"] = 
-function (visitor, node, arg)
-{
-    return create_value(visitor, Data.TYPEOF.bool, true);
-}
-Visitor.VISIT_RULE["false"] = 
-function (visitor, node, arg)
-{
-    return create_value(visitor, Data.TYPEOF.bool, false);
+    else
+    {
+        visitor.addText("$to_bool(");
+        visitor.visit(node, arg, 3);
+        visitor.addText(")");
+    }
 }
 Visitor.VISIT_RULE["Number"] = 
 function (visitor, node, arg)
 {
     if (length_is(node, 1))
     {
-        return visitor.visit(node, arg, 1); 
+        visitor.visit_all(node, arg);
     }
-    
-    const RESULT    = create_position(visitor);
-    const VALUE     = visitor.visit(node, arg, 3); 
-
-    create_operation(
-        visitor, 
-        get_operation("to_number"), 
-        [RESULT, VALUE], 
-        get_position(node, 1)
-    );
-
-    return RESULT;
-}
-Visitor.VISIT_RULE["number_token"] = 
-function (visitor, node, arg)
-{
-    return create_value(visitor, Data.TYPEOF.number, Number(node.children.string));
+    else
+    {
+        visitor.addText("$to_number(");
+        visitor.visit(node, arg, 3);
+        visitor.addText(")");
+    }
 }
 Visitor.VISIT_RULE["String"] = 
 function (visitor, node, arg)
 {
     if (length_is(node, 1))
     {
-        return visitor.visit(node, arg, 1); 
+        visitor.visit_all(node, arg);
     }
-    
-    const RESULT    = create_position(visitor);
-    const VALUE     = visitor.visit(node, arg, 3); 
-    
-    create_operation(
-        visitor, 
-        get_operation("to_string"), 
-        [RESULT, VALUE], 
-        get_position(node, 1)
-    );
-
-    return RESULT;
-}
-Visitor.VISIT_RULE["string_token"] = 
-function (visitor, node, arg)
-{
-    return create_value(visitor, Data.TYPEOF.string, node.children.string);
+    else
+    {
+        visitor.addText("$to_string(");
+        visitor.visit(node, arg, 3);
+        visitor.addText(")");
+    }
 }
 Visitor.VISIT_RULE["Array"] = 
 function (visitor, node, arg)
 {
-    const ARRAY = [];
-
-    if (length_is(node, 3))
-    {
-        visitor.visit(node, ARRAY, 2);
-    }
-
-    return create_value(visitor, Data.TYPEOF.array, ARRAY);
+    visitor.visit_all(node, arg);
 }
 Visitor.VISIT_RULE["$Array"] = 
 function (visitor, node, arg)
 {
-    const ARRAY = arg;
-    ARRAY.push(visitor.visit(node, arg, 1));
-
-    if (length_is(node, 2))
-    {
-        visitor.visit(node, ARRAY, 2);
-    }
+    visitor.visit_all(node, arg);
 }
 Visitor.VISIT_RULE["$$Array"] = 
 function (visitor, node, arg)
 {
-    const ARRAY = arg;
-    ARRAY.push(visitor.visit(node, arg, 2));
-
-    if (length_is(node, 3))
-    {
-        visitor.visit(node, ARRAY, 3);
-    }
+    visitor.visit_all(node, arg);
 }
 
 
@@ -724,199 +653,4 @@ function length_is (node, length)
 function name_of (node, child)
 {
     return node.children[child - 1].rule_name;
-}
-
-function get_position (node, child)
-{
-    return node.children[child - 1].children.position;
-}
-
-function get_operation (node, child = null)
-{
-    let name = node;
-    if (child !== null)
-    {
-        name = node.children[child - 1].children.type;
-    }
-    
-    if (Operation.TYPEOF.hasOwnProperty(name) === false)
-    {
-        throw new Error(`no operation named ${name}`);
-    }
-
-    // CHANGE
-    return Operation.OPERATION[Operation.TYPEOF[name]];
-    // return Operation.TYPEOF[name];
-}
-
-function open_function (visitor)
-{
-    const FUNCTION_ID = visitor.function_memory.length;
-
-    visitor.function_stack.push(FUNCTION_ID);
-    visitor.function_memory[FUNCTION_ID] = 0;
-    
-    return FUNCTION_ID;
-}
-function close_function (visitor)
-{
-    create_operation(
-        visitor, 
-        get_operation("return"), 
-        [
-            create_value(
-                visitor, 
-                Data.TYPEOF.null, 
-                null
-            )
-        ],
-        null
-    );
-
-    visitor.function_stack.pop();
-}
-function current_function (visitor)
-{
-    return visitor.function_stack.at(-1);
-}
-
-function create_position (visitor)
-{
-    const CURRENT_FUNCTION  = visitor.function_stack.at(-1);
-    const FUNCTION_MEMORY   = visitor.function_memory[CURRENT_FUNCTION];
-    const POSITION          = [CURRENT_FUNCTION, FUNCTION_MEMORY];
-
-    visitor.function_memory[CURRENT_FUNCTION] += 1;
-
-    return new Data(Data.TYPEOF.ref, POSITION);
-}
-function create_value (visitor, type, data)
-{
-    const CURRENT_FUNCTION  = visitor.function_stack.at(-1);
-    const FUNCTION_MEMORY   = visitor.function_memory[CURRENT_FUNCTION];
-    const POSITION          = [CURRENT_FUNCTION, FUNCTION_MEMORY];
-
-    visitor.function_memory[CURRENT_FUNCTION] += 1;
-
-    create_operation(
-        visitor, 
-        get_operation("create"), 
-        [
-            new Data(
-                Data.TYPEOF.ref,
-                POSITION
-            ), 
-            type, 
-            data
-        ], 
-        null
-    );
-
-    return new Data(Data.TYPEOF.ref, POSITION);
-}
-function copy_value (visitor, type, data)
-{
-    const CURRENT_FUNCTION  = visitor.function_stack.at(-1);
-    const FUNCTION_MEMORY   = visitor.function_memory[CURRENT_FUNCTION];
-    const POSITION          = [CURRENT_FUNCTION, FUNCTION_MEMORY];
-
-    visitor.function_memory[CURRENT_FUNCTION] += 1;
-
-    create_operation(
-        visitor, 
-        get_operation("copy"), 
-        [
-            new Data(
-                Data.TYPEOF.ref,
-                POSITION
-            ), 
-            type, 
-            data
-        ], 
-        null
-    );
-
-    return new Data(Data.TYPEOF.ref, POSITION);
-}
-function $create_value (visitor, type, data)
-{
-    const CURRENT_FUNCTION  = visitor.function_stack.at(-1);
-    const FUNCTION_MEMORY   = visitor.function_memory[CURRENT_FUNCTION];
-    const POSITION          = [CURRENT_FUNCTION, FUNCTION_MEMORY];
-
-    visitor.function_memory[CURRENT_FUNCTION] += 1;
-
-    const OPERATION = create_operation(
-        visitor, 
-        get_operation("create"), 
-        [
-            new Data(
-                Data.TYPEOF.ref,
-                POSITION
-            ), 
-            type, 
-            data
-        ], 
-        null
-    );
-
-    return {
-        VALUE       : new Data(Data.TYPEOF.ref, POSITION), 
-        OPERATION   : OPERATION
-    };
-}
-
-function create_operation (visitor, type, operands, position)
-{
-    visitor.operations.push(new Operation(type, operands, position));
-
-    return visitor.operations.length - 1;
-}
-function current_operation (visitor)
-{
-    return visitor.operations.length - 1;
-}
-function next_operation (visitor)
-{
-    return visitor.operations.length;
-}
-
-function create_identifier (visitor, name)
-{
-    const SYMBOL_TABLE = visitor.scope_tree[visitor.current_scope].symbol_table;
-
-    if (SYMBOL_TABLE.has(name) == false)
-    {
-        SYMBOL_TABLE.set(name, create_position(visitor));
-    }
-    
-    return SYMBOL_TABLE.get(name);
-}
-function get_identifier (visitor, name, position)
-{
-    let scope = visitor.current_scope;
-
-    while (visitor.scope_tree[scope].symbol_table.has(name) === false) 
-    {
-        scope = visitor.scope_tree[scope].parent;
-
-        if (scope === -1) 
-        {
-            throw new Error(`undeclared identifier "${name}" at (${position.row}, ${position.column})`);
-        }
-    }
-
-    return visitor.scope_tree[scope].symbol_table.get(name);
-}
-
-function branch_scope (visitor)
-{
-    const PREVIOUS_SCOPE = visitor.current_scope;
-    visitor.current_scope = visitor.scope_tree.length;
-
-    visitor.scope_tree.push(new Scope(PREVIOUS_SCOPE));
-}
-function leave_scope (visitor)
-{
-    visitor.current_scope = visitor.scope_tree[visitor.current_scope].parent;
 }

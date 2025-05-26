@@ -1576,6 +1576,30 @@ function (visitor, node, arg)
     return RETURN_VALUE;
 }
 
+
+Visitor.VISIT_RULE["Parameters"] = 
+function (visitor, node, arg)
+{
+    const PARAMETERS = arg;
+    if (length_is(node, 2))
+    {
+        visitor.visit(node, PARAMETERS, 2);
+    }
+    
+    PARAMETERS.push(visitor.visit(node, null, 1));
+}
+Visitor.VISIT_RULE["$Parameters"] = 
+function (visitor, node, arg)
+{
+    const PARAMETERS = arg;
+    if (length_is(node, 3))
+    {
+        visitor.visit(node, PARAMETERS, 3);
+    }
+    
+    PARAMETERS.push(visitor.visit(node, null, 2));
+}
+
 Visitor.VISIT_RULE["Null"] = 
 function (visitor, node, arg)
 {

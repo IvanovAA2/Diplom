@@ -392,7 +392,7 @@ class Parser
         
         NewObject :
         [
-            ["new", "id", "(", "FunctionParameters", ")"],  
+            ["new", "id", "(", "Parameters", ")"],  
         ],
         This :
         [
@@ -402,6 +402,17 @@ class Parser
         Variable :
         [
             ["id"],
+        ],
+
+        Parameters :
+        [
+            ["Expression", "$Parameters"],
+            [NOP],
+        ],
+        $Parameters :
+        [
+            [",", "Expression", "$Parameters"],
+            [NOP],
         ],
 
         Null :

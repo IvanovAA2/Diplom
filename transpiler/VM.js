@@ -11,6 +11,7 @@ class Program
 
     run ()
     {
+        console.log(coe.text);
         eval(code.text);
     }
 }
