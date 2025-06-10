@@ -257,10 +257,10 @@ class Visitor
             // DEBUG
             return Visitor.VISIT_RULE[NODE.rule_name](this, NODE, arg);
         }
-        else
-        {
-            console.log(`incorrect rulename: ${NODE.rule_name}`)
-        }
+        // else
+        // {
+        //     console.log(`incorrect rulename: ${NODE.rule_name}`)
+        // }
     }
 }
 

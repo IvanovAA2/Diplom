@@ -222,7 +222,7 @@ class Program
             break;
             case Data.TYPEOF.string:
             {
-                addOutput(VALUE.data);   
+                addOutput(`"${VALUE.data}"`);   
             }
             break;
 
@@ -280,27 +280,56 @@ class Program
         
         stack.pop();
     }
-    get_format (value, depth = 0, nl = false)
+    get_format (value, depth = 0, nl = false, stack = [])
     {
+        const VALUE = value;
+        if (VALUE.type === Data.TYPEOF.array ||
+            VALUE.type === Data.TYPEOF.object
+        )
+        {
+            for (const PREVIOUS of stack)
+            {
+                if (VALUE === PREVIOUS)
+                {
+                    if (VALUE.type === Data.TYPEOF.array)
+                    {
+                        addOutput(`[...(${VALUE.data.length})]`);
+                    }
+                    if (VALUE.type === Data.TYPEOF.object)
+                    {
+                        addOutput(`{...(${VALUE.data.length - 1})}`);
+                    }
+                    
+                    return;
+                }
+            }
+            
+        }
+        stack.push(VALUE);
+        
         switch (value.type)
         {
             case Data.TYPEOF.null:
             {
+                stack.pop();
                 return "null";
             }
             break;
             case Data.TYPEOF.bool:
             {
+                stack.pop();
                 return value.data ? "true" : "false";
             }
             break;
             case Data.TYPEOF.number:
             {
+                stack.pop();
                 return String(value.data);
             }
             break;
             case Data.TYPEOF.string:
             {
+                stack.pop();
                 return `"${value.data}"`;
             }
             break;
@@ -315,11 +344,12 @@ class Program
                 
                 for (const INDEX in value.data)
                 {
-                    text += ". ".repeat(depth + 1) + INDEX + ": " + this.get_format(value.data[INDEX], depth + 1, true) + "\n";
+                    text += ". ".repeat(depth + 1) + INDEX + ": " + this.get_format(value.data[INDEX], depth + 1, true, stack) + "\n";
                 }
                 
                 text += ". ".repeat(depth) + "]";
                 
+                stack.pop();
                 return text;
             }
             break;
@@ -336,12 +366,13 @@ class Program
                 {
                     if (isNaN(value.data[0].data[NAME]) === false)
                     {
-                        text += ". ".repeat(depth + 1) + NAME + ": " + this.get_format(value.data[value.data[0].data[NAME]], depth + 1, true) + "\n";
+                        text += ". ".repeat(depth + 1) + NAME + ": " + this.get_format(value.data[value.data[0].data[NAME]], depth + 1, true, stack) + "\n";
                     }
                 }
                 
                 text += ". ".repeat(depth) + "}";
                 
+                stack.pop();
                 return text;
             }
             break;
@@ -350,11 +381,13 @@ class Program
             case Data.TYPEOF.method:
             case Data.TYPEOF.default_method:
             {
+                stack.pop();
                 return `"function"`;
             }
             break;
             default:
             {
+                stack.pop();
                 return `Unknown type: ${value.type}`;
             }
         }
@@ -1455,9 +1488,18 @@ function (program, operands)
         program.evoke_error_message(`can't do "join" with not string`);
     }
     
+    const NEW_ARRAY = [];
+    for (const ELEMENT of ARRAY.data)
+    {
+        if (ELEMENT.type !== Data.TYPEOF.string)
+        {
+            program.evoke_error_message(`can't do "join" with not string`);
+        }
+        NEW_ARRAY.push(ELEMENT.data);
+    }
     program.return_value = new Data(
         Data.TYPEOF.string,
-        ARRAY.data.join(DELIMETER.data)
+        NEW_ARRAY.join(DELIMETER.data)
     );
 }
 Operation.OPERATION[Operation.TYPEOF["codeOfChar"]] =
