@@ -222,7 +222,7 @@ class Program
             break;
             case Data.TYPEOF.string:
             {
-                addOutput(`"${VALUE.data}"`);   
+                addOutput(VALUE.data);   
             }
             break;
 
