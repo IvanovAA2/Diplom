@@ -24,4 +24,5 @@ for (var i = 0; i < n; i += 1)
         }
     }
 }
-println(clock() - start);
+var end = clock();
+println(end - start);

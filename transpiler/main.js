@@ -197,10 +197,35 @@ function run(input)
 
     // console.log(parse_tree);
 
-    program = new Program(parse_tree);
-    program.run();
+    
+    
+    var visitor = new Visitor();
+    Visitor.VISIT_RULE["Program"](visitor, parse_tree, null);
 
-
+    console.log(visitor.code.text);
+    
+    function println () 
+    {
+        for (const ELEMENT of arguments)
+        {
+            console.log(ELEMENT);
+        }
+        console.log("\n");
+        return null;
+    }
+    function print () 
+    {
+        for (const ELEMENT of arguments)
+        {
+            console.log(ELEMENT);
+        }
+        return null;
+    }
+    
+    var start = performance.now();
+    eval(visitor.code.text);
+    var end = performance.now();
+    console.log(`time: ${precision(end - start)}ms\n\n`);
     
     // try
     // {

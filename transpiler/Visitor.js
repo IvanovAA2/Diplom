@@ -1,46 +1,22 @@
 
 class Code
 {
-    text = "";    
+    text = "";  
+    
+    constructor ()
+    {
+        var default_code =
+        [
+            ``,
+            ``,
+        ]
+        
+        for (const LINE of default_code)
+        {
+            this.text += LINE + "\n";
+        }
+    }
 }
-
-class Operation
-{
-    static DEFAULT_FUNCTIONS = [
-        "print",
-        "println",
-        "await",
-        "input",
-        "format",
-        "clone",
-        "rand",
-        "clock",
-
-        "is_null",
-        "is_bool",
-        "is_number",
-        "is_string",
-        "is_array",
-        "is_object",
-        "is_function",
-    ];
-    static DEFAULT_METHODS = [];
-}
-for (const INDEX in Operation.OPERATIONS)
-{
-    Operation.TYPEOF[Operation.OPERATIONS[INDEX]] = INDEX;
-}
-Operation.DEFAULT_METHODS[Data.TYPEOF.string] = new Set([
-    "size",
-    "split",
-    "codeOfChar",
-]);
-Operation.DEFAULT_METHODS[Data.TYPEOF.array] = new Set([
-    "size",
-    "push",
-    "pop",
-    "join",
-]);
 
 class Scope
 {
@@ -61,12 +37,7 @@ class Visitor
     scope_tree     = [new Scope(-1)];
     current_scope  = 0;
     
-    code;
-
-    constructor (code)
-    {
-        this.code = code;
-    }
+    code            = new Code();
 
     visit (parent, arg, child)
     {
@@ -79,7 +50,7 @@ class Visitor
             // console.log(`${NODE.rule_name}`) 
             
             // DEBUG
-            return Visitor.VISIT_RULE[NODE.rule_name](this, NODE, arg);
+            Visitor.VISIT_RULE[NODE.rule_name](this, NODE, arg);
         }
         else
         {
@@ -99,7 +70,7 @@ class Visitor
                 // console.log(`${NODE.rule_name}`) 
                 
                 // DEBUG
-                return Visitor.VISIT_RULE[NODE.rule_name](this, NODE, arg);
+                Visitor.VISIT_RULE[NODE.rule_name](this, NODE, arg);
             }
             else
             {
@@ -115,7 +86,6 @@ class Visitor
         this.code.text += text;
     }
 }
-
 
 
 Visitor.VISIT_RULE["Program"] = 
@@ -143,6 +113,8 @@ function (visitor, node, arg)
 Visitor.VISIT_RULE["Scope"] = 
 function (visitor, node, arg)
 {
+    visitor.addText("\n");
+    
     visitor.addText("    ".repeat(arg));
     visitor.visit(node, arg, 1);
     visitor.addText("\n");
@@ -151,7 +123,6 @@ function (visitor, node, arg)
     
     visitor.addText("    ".repeat(arg));
     visitor.visit(node, arg, 3);
-    visitor.addText("\n");
 }
 
 Visitor.VISIT_RULE["Class"] = 
@@ -270,9 +241,7 @@ function (visitor, node, arg)
 Visitor.VISIT_RULE["BoolExpression"] = 
 function (visitor, node, arg)
 {
-    visitor.addText("$to_bool(");
     visitor.visit(node, arg, 1);
-    visitor.addText(")");
 }
 
 Visitor.VISIT_RULE["Conditional"] = 
@@ -581,6 +550,17 @@ function (visitor, node, arg)
     visitor.visit_all(node, arg);
 }
 
+Visitor.VISIT_RULE["Parameters"] = 
+function (visitor, node, arg)
+{
+    visitor.visit_all(node, arg);
+}
+Visitor.VISIT_RULE["$Parameters"] = 
+function (visitor, node, arg)
+{
+    visitor.visit_all(node, arg);
+}
+
 Visitor.VISIT_RULE["Null"] = 
 function (visitor, node, arg)
 {
@@ -595,7 +575,7 @@ function (visitor, node, arg)
     }
     else
     {
-        visitor.addText("$to_bool(");
+        visitor.addText("new Boolean(");
         visitor.visit(node, arg, 3);
         visitor.addText(")");
     }
@@ -609,7 +589,7 @@ function (visitor, node, arg)
     }
     else
     {
-        visitor.addText("$to_number(");
+        visitor.addText("new Number(");
         visitor.visit(node, arg, 3);
         visitor.addText(")");
     }
@@ -623,7 +603,7 @@ function (visitor, node, arg)
     }
     else
     {
-        visitor.addText("$to_string(");
+        visitor.addText("new String(");
         visitor.visit(node, arg, 3);
         visitor.addText(")");
     }
