@@ -121,7 +121,7 @@ println(format(arr));
 
 func foo (a, b, c = 1, d)
 {
-    println(a, " ", b, " ", c, " ", d);
+    println(a, b, c, d);
 }
 println(foo(2));
 
@@ -171,4 +171,11 @@ class A
 
 new B();
 
+var start = clock();
+for (var t = 0; t < 1000 * 1000; t += 1)
+{}
+println(clock() - start);
+
 return "exit value";
+
+print("return в главном контексте завершает исполнение");

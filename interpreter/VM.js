@@ -1425,9 +1425,14 @@ function (program, operands)
         program.evoke_error_message(`can't do "split" with not string`);
     }
     
+    const ARRAY = STRING.data.split(DELIMETER.data);
+    for (const INDEX in ARRAY)
+    {
+        ARRAY[INDEX] = new Data(Data.TYPEOF.string, ARRAY[INDEX]);
+    }
     program.return_value = new Data(
         Data.TYPEOF.array,
-        STRING.data.split(DELIMETER.data)
+        ARRAY
     );
 }
 Operation.OPERATION[Operation.TYPEOF["join"]] =
