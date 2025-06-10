@@ -14,6 +14,7 @@ var a, b = null, c = true, d = 3, e = "aba", f = [1, "str", null, c, [1, 2, 3]];
 string(123), number("123");
 
 # ввод и вывод
+println("Введите любой текст");
 var inp = input("подсказка в поле для ввода");
 print("Это", "результат ");
 println("в поле вывода:", inp);
