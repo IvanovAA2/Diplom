@@ -14,12 +14,12 @@ const inputStream = document.getElementById('inputStream');
 const inputStreamButton = document.getElementById('inputStreamButton');
 
 
-fetch('../tests/syntax_presentation.txt')
+fetch('tests/syntax_presentation.txt')
 .then(response => 
 {
     if (response.ok == false) 
     {
-        throw new Error(`Файл "../tests/syntax_presentation.txt" не найден`);
+        throw new Error(`Файл "tests/syntax_presentation.txt" не найден`);
     }
     
     return response.text();
