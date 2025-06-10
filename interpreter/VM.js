@@ -47,51 +47,51 @@ class Program
 
             // DEBUG
             
-            for (const INDEX in Operation.OPERATIONS)
-            {
-                console.log(`${INDEX}:\t ${Operation.OPERATIONS[INDEX]}\n`)
-            }
+            // for (const INDEX in Operation.OPERATIONS)
+            // {
+            //     console.log(`${INDEX}:\t ${Operation.OPERATIONS[INDEX]}\n`)
+            // }
 
-            let text = "", cnt = -1;
+            // let text = "", cnt = -1;
 
-            for (const OPERATION of this.operations)
-            {
-                text += `${cnt += 1} \t${Operation.OPERATIONS[OPERATION.type]}: \t`;
+            // for (const OPERATION of this.operations)
+            // {
+            //     text += `${cnt += 1} \t${Operation.OPERATIONS[OPERATION.type]}: \t`;
 
-                for (const OPERAND of OPERATION.operands)
-                {
-                    if (OPERAND && OPERAND.hasOwnProperty("data"))
-                    {
-                        if (OPERAND.type === Data.TYPEOF.string)
-                        {
-                            text += `(${Data.DATA_NAME.get(OPERAND.type)}: "${OPERAND.data})" `;
-                        }
-                        else if (OPERAND.type === Data.TYPEOF.array)
-                        {
-                            text += `(${Data.DATA_NAME.get(OPERAND.type)}: [`;
+            //     for (const OPERAND of OPERATION.operands)
+            //     {
+            //         if (OPERAND && OPERAND.hasOwnProperty("data"))
+            //         {
+            //             if (OPERAND.type === Data.TYPEOF.string)
+            //             {
+            //                 text += `(${Data.DATA_NAME.get(OPERAND.type)}: "${OPERAND.data})" `;
+            //             }
+            //             else if (OPERAND.type === Data.TYPEOF.array)
+            //             {
+            //                 text += `(${Data.DATA_NAME.get(OPERAND.type)}: [`;
                             
-                            for (const ELEMENT of OPERAND.data)
-                            {
-                                text += `${ELEMENT.data} `;
-                            }
+            //                 for (const ELEMENT of OPERAND.data)
+            //                 {
+            //                     text += `${ELEMENT.data} `;
+            //                 }
                             
-                            text += "\b] ";
-                        }
-                        else
-                        {
-                            text += `(${Data.DATA_NAME.get(OPERAND.type)}: ${OPERAND.data}) `;
-                        }
-                    }
-                    else
-                    {
-                        text += OPERAND + " ";
-                    }
-                }
+            //                 text += "\b] ";
+            //             }
+            //             else
+            //             {
+            //                 text += `(${Data.DATA_NAME.get(OPERAND.type)}: ${OPERAND.data}) `;
+            //             }
+            //         }
+            //         else
+            //         {
+            //             text += OPERAND + " ";
+            //         }
+            //     }
 
-                text += "\n";
+            //     text += "\n";
 
-            }
-            console.log(text);
+            // }
+            // console.log(text);
 
             // DEBUG
         }
@@ -107,53 +107,53 @@ class Program
 
             // DEBUG
             
-            let text = `!!!!!!!!!!!!!!!!!\n${this.current_operation} \t${Operation.OPERATIONS[OPERATION.type]} (${OPERATION.type}): `;
-            for (const OPERAND of OPERATION.operands)
-            {
-                if (OPERAND && OPERAND.hasOwnProperty("data"))
-                {
-                    if (OPERAND.type === Data.TYPEOF.string)
-                    {
-                        text += `(${Data.DATA_NAME.get(OPERAND.type)}: "${OPERAND.data})" `;
-                    }
-                    else if (OPERAND.type === Data.TYPEOF.array)
-                    {
-                        text += `(${Data.DATA_NAME.get(OPERAND.type)}: [ `;
+            // let text = `!!!!!!!!!!!!!!!!!\n${this.current_operation} \t${Operation.OPERATIONS[OPERATION.type]} (${OPERATION.type}): `;
+            // for (const OPERAND of OPERATION.operands)
+            // {
+            //     if (OPERAND && OPERAND.hasOwnProperty("data"))
+            //     {
+            //         if (OPERAND.type === Data.TYPEOF.string)
+            //         {
+            //             text += `(${Data.DATA_NAME.get(OPERAND.type)}: "${OPERAND.data})" `;
+            //         }
+            //         else if (OPERAND.type === Data.TYPEOF.array)
+            //         {
+            //             text += `(${Data.DATA_NAME.get(OPERAND.type)}: [ `;
                         
-                        for (const ELEMENT of OPERAND.data)
-                        {
-                            text += `${ELEMENT.data} `;
-                        }
+            //             for (const ELEMENT of OPERAND.data)
+            //             {
+            //                 text += `${ELEMENT.data} `;
+            //             }
                         
-                        text += "] ";
-                    }
-                    else
-                    {
-                        text += `(${Data.DATA_NAME.get(OPERAND.type)}: ${OPERAND.data}) `;
-                    }
-                }
-                else if (OPERAND && OPERAND.hasOwnProperty("$"))
-                {
-                    text += `class\n`;
+            //             text += "] ";
+            //         }
+            //         else
+            //         {
+            //             text += `(${Data.DATA_NAME.get(OPERAND.type)}: ${OPERAND.data}) `;
+            //         }
+            //     }
+            //     else if (OPERAND && OPERAND.hasOwnProperty("$"))
+            //     {
+            //         text += `class\n`;
                         
-                    for (const NAME in OPERAND)
-                    {
-                        text += `${NAME} : ${OPERAND[NAME]}\n`;
-                    }
-                }
-                else
-                {
-                    text += OPERAND + " ";
-                }
-            }
-            console.log(text);
+            //         for (const NAME in OPERAND)
+            //         {
+            //             text += `${NAME} : ${OPERAND[NAME]}\n`;
+            //         }
+            //     }
+            //     else
+            //     {
+            //         text += OPERAND + " ";
+            //     }
+            // }
+            // console.log(text);
             
             // DEBUG
             
             const OPERANDS = OPERATION.operands;
             // CHANGE
-            // Operation.OPERATION[OPERATION.type](this, OPERANDS);
             OPERATION.type(this, OPERANDS);
+            // Operation.OPERATION[OPERATION.type](this, OPERANDS);
             
             this.current_operation += 1;
         }
@@ -445,8 +445,8 @@ function (program, operands)
     if (FUNCTION.type === Data.TYPEOF.default_function)
     {
         // CHANGE
-        // Operation.OPERATION[FUNCTION.data](program, PARAMETERS);
         FUNCTION.data(program, PARAMETERS);
+        // Operation.OPERATION[FUNCTION.data](program, PARAMETERS);
         
         return;
     }
@@ -458,8 +458,8 @@ function (program, operands)
         program.object_stack.push(OBJECT);
         
         // CHANGE
-        // Operation.OPERATION[get_operation(NAME)](program, PARAMETERS);
         get_operation(NAME)(program, PARAMETERS);
+        // Operation.OPERATION[get_operation(NAME)](program, PARAMETERS);
         
         return;
     }

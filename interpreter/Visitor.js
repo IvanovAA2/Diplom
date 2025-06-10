@@ -788,9 +788,12 @@ function (visitor, node, arg)
         [new Data(Data.TYPEOF.jump, null)], 
         null
     );
-    
-    const CONTINUE_JUMP = next_operation(visitor); 
-    visitor.visit(node, null, 7);
+    const CONTINUE_JUMP = create_operation(
+        visitor, 
+        get_operation("jump"), 
+        [new Data(Data.TYPEOF.jump, null)], 
+        null
+    );
     visitor.operations[SKIP_JUMP].operands[0].data = next_operation(visitor);
     
     const BOOL_EXPRESSION = visitor.visit(node, null, 5);
@@ -807,11 +810,16 @@ function (visitor, node, arg)
     ARG_COPY.CONTINUE   = CONTINUE_JUMP;
     
     visitor.visit(node, ARG_COPY, 9);
+    visitor.operations[CONTINUE_JUMP].operands[0].data = next_operation(visitor);
+    visitor.visit(node, ARG_COPY, 7);
     
     create_operation(
         visitor, 
         get_operation("jump"), 
-        [new Data(Data.TYPEOF.jump, CONTINUE_JUMP)], 
+        [
+            new Data(Data.TYPEOF.jump, 
+            visitor.operations[SKIP_JUMP].operands[0].data)
+        ], 
         null
     );
     
