@@ -105,6 +105,10 @@ inputStreamButton.addEventListener('click', function()
     inputStream.disabled = true;
     inputStreamButton.disabled = true;
 
+    program.return_value = new Data(
+        Data.TYPEOF.string, 
+        get_input()
+    );
     program.run(false);
 });
 
@@ -125,7 +129,7 @@ function precision (number, digits = 3)
 
 function run(input) 
 {
-    // console.log("Running:\n" + input);
+    console.log("Running");
     clearOutput();
     
     

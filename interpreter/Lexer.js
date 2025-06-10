@@ -231,7 +231,13 @@ class Lexer
                 while (! (this.#is_equal('*') && this.#next_is_equal('/'))) 
                 {
                     ++this.#position;
+                    ++this.#column;
                     
+                    if (this.#is_equal('\n')) 
+                    {
+                        ++this.#row;
+                        this.#column = 0;
+                    }
                     if (this.#position === this.#input.length)
                     {
                         throw new Error("multiline comment wasn't closed");
@@ -239,6 +245,7 @@ class Lexer
                 }
                 
                 this.#position += 2;
+                this.#column += 2;
                 
                 continue;
             }
