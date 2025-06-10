@@ -152,8 +152,8 @@ class Program
             
             const OPERANDS = OPERATION.operands;
             // CHANGE
-            Operation.OPERATION[OPERATION.type](this, OPERANDS);
-            // OPERATION.type(this, OPERANDS);
+            // Operation.OPERATION[OPERATION.type](this, OPERANDS);
+            OPERATION.type(this, OPERANDS);
             
             this.current_operation += 1;
         }
@@ -445,8 +445,8 @@ function (program, operands)
     if (FUNCTION.type === Data.TYPEOF.default_function)
     {
         // CHANGE
-        Operation.OPERATION[FUNCTION.data](program, PARAMETERS);
-        // FUNCTION.data(program, PARAMETERS);
+        // Operation.OPERATION[FUNCTION.data](program, PARAMETERS);
+        FUNCTION.data(program, PARAMETERS);
         
         return;
     }
@@ -458,8 +458,8 @@ function (program, operands)
         program.object_stack.push(OBJECT);
         
         // CHANGE
-        Operation.OPERATION[get_operation(NAME)](program, PARAMETERS);
-        // get_operation(NAME)(program, PARAMETERS);
+        // Operation.OPERATION[get_operation(NAME)](program, PARAMETERS);
+        get_operation(NAME)(program, PARAMETERS);
         
         return;
     }

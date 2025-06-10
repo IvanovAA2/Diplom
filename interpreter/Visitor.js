@@ -1752,8 +1752,8 @@ function get_operation (node, child = null)
     }
 
     // CHANGE
-    // return Operation.OPERATION[Operation.TYPEOF[name]];
-    return Operation.TYPEOF[name];
+    return Operation.OPERATION[Operation.TYPEOF[name]];
+    // return Operation.TYPEOF[name];
 }
 
 function open_function (visitor)
