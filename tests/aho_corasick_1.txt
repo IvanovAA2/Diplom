@@ -16,7 +16,7 @@ var leaf    = 4;
 var next    = 5;
 var go      = 6;
 
-func AddNode (p = -1, pchar = -1)
+function AddNode (p = -1, pchar = -1)
 {
     t.push
     ([
@@ -32,14 +32,14 @@ func AddNode (p = -1, pchar = -1)
 AddNode();
 
 var a = "a".codeOfChar(0);
-func Order (s, i)
+function Order (s, i)
 {
     return s.codeOfChar(i) - a;
 }
 
-func Go () {}
+function Go () {}
 
-func Link (cur)
+function Link (cur)
 {
     if (t[cur][link] === -1)
     {
@@ -55,7 +55,7 @@ func Link (cur)
     return t[cur][link];
 }
 
-func Go (cur, c)
+function Go (cur, c)
 {
     if (t[cur][go][c] === -1)
     {
@@ -79,7 +79,7 @@ func Go (cur, c)
     return t[cur][go][c];
 }
 
-func Exit (cur)
+function Exit (cur)
 {
     if (t[cur][exit] === -1)
     {
@@ -103,7 +103,7 @@ func Exit (cur)
     return t[cur][exit];
 }
 
-func Add (word, index)
+function Add (word, index)
 {
     var cur = 0;
     
@@ -123,7 +123,7 @@ func Add (word, index)
     t[cur][leaf].push(index);
 }
 
-func Solve (text, words)
+function Solve (text, words)
 {
     var n = words.size();
     var ans = [0] * n, count = [0] * t.size();

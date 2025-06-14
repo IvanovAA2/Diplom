@@ -1,11 +1,11 @@
-func foo () {}
+function foo () {}
 
-func bar ()
+function bar ()
 {
     foo();
 }
 
-func foo ()
+function foo ()
 {
     println("foo");
 }

@@ -1,4 +1,4 @@
-func fib (n)
+function fib (n)
 {
     println(n);
     if (n === 1 or n === 2)

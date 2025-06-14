@@ -119,14 +119,14 @@ println(format(arr));
 
 # функции
 
-func foo (a, b, c = 1, d)
+function foo (a, b, c = 1, d)
 {
     println(a, b, c, d);
 }
 println(foo(2));
 
-func f1 () {}
-func f2 (n)
+function f1 () {}
+function f2 (n)
 {
     println("f2 ", n);
     
@@ -135,7 +135,7 @@ func f2 (n)
         f1(n - 1);
     }
 }
-func f1 (n)
+function f1 (n)
 {
     println("f1 ", n);
     

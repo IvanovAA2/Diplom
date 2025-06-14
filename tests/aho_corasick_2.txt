@@ -16,7 +16,7 @@ class Node
 }
 
 var code_of_a = "a".codeOfChar(0);
-func order (s, i)
+function order (s, i)
 {
     return s.codeOfChar(i) - code_of_a;
 }

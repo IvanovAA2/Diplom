@@ -1,4 +1,4 @@
-func foo (n)
+function foo (n)
 {
     println(n);
     
