@@ -62,7 +62,7 @@ class Lexer
 
         "return",
 
-        "func",
+        "function",
         
         "class",
         "constructor",

@@ -126,7 +126,7 @@ class Parser
 
         Function :
         [
-            ["func", "id", "(", "FunctionParameters", ")", "Scope"],
+            ["function", "id", "(", "FunctionParameters", ")", "Scope"],
         ],
         FunctionParameters :
         [
